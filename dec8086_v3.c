@@ -98,8 +98,8 @@ static int xor_digits_i32(i32 n) {
 //
 
 static u8 *temp_ptr = 0;
-static int temp_pos = 0;
-static int temp_cap = 0;
+static i64 temp_pos = 0;
+static i64 temp_cap = 0;
 
 static void temp_init() {
 	temp_cap = 1024 * 1024 * 4;
@@ -658,6 +658,8 @@ static void decode_8086(char *name, u8 *data, int len, bool print_labels) {
 //
 
 int main(int argc, char **argv) {
+	temp_init();
+	
 	if (argc > 1) {
 		FILE *file = fopen(argv[1], "rb");
 		if (file) {
