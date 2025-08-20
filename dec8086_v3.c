@@ -301,14 +301,6 @@ static void decode_8086(char *name, u8 *data, int len, bool print_labels) {
 			if (b0 & 0x01)  reg_table = wreg_table;
 			else            reg_table = nreg_table;
 			
-			char dst_buf[32] = {0};
-			int  dst_buf_cap =  array_count(dst_buf);
-			int  dst_buf_len = 0;
-			
-			char src_buf[32] = {0};
-			int  src_buf_cap =  array_count(src_buf);
-			int  src_buf_len = 0;
-			
 			char *dst = 0, *src = 0;
 			char *size = "byte";
 			
@@ -356,7 +348,7 @@ static void decode_8086(char *name, u8 *data, int len, bool print_labels) {
 						sign = disp < 0 ? '-' : '+';
 						disp = disp < 0 ? -disp : disp;
 						
-						dst_buf_len = snprintf(dst_buf, dst_buf_cap, "[%s %c %i]", addr_table[b1 & 0x07], sign, disp);
+						dst = tsprintf("[%s %c %i]", addr_table[b1 & 0x07], sign, disp);
 					} else if ((b1 & 0x07) == 0x06) {
 						assert(idx + 1 < len);
 						
@@ -367,12 +359,10 @@ static void decode_8086(char *name, u8 *data, int len, bool print_labels) {
 						// to be unsigned.
 						u16 disp = ((u16) b2 | ((u16) b3 << 8));
 						
-						dst_buf_len = snprintf(dst_buf, dst_buf_cap, "[%u]", disp);
+						dst = tsprintf("[%u]", disp);
 					} else {
-						dst_buf_len = snprintf(dst_buf, dst_buf_cap, "[%s]", addr_table[b1 & 0x07]);
+						dst = tsprintf("[%s]", addr_table[b1 & 0x07]);
 					}
-					
-					dst = dst_buf;
 				}
 				
 				if (b0 >> 2 == 0x22) {
@@ -397,8 +387,7 @@ static void decode_8086(char *name, u8 *data, int len, bool print_labels) {
 						size = "word";
 					}
 					
-					src_buf_len = snprintf(src_buf, src_buf_cap, "%u", (u32) imm);
-					src = src_buf;
+					src = tsprintf("%u", (u32) imm);
 				}
 				
 				// If the D flag is set AND we're in the first variant of the mov:
@@ -466,14 +455,6 @@ static void decode_8086(char *name, u8 *data, int len, bool print_labels) {
 			if (b0 & 0x01)  reg_table = wreg_table;
 			else            reg_table = nreg_table;
 			
-			char dst_buf[32] = {0};
-			int  dst_buf_cap =  array_count(dst_buf);
-			int  dst_buf_len = 0;
-			
-			char src_buf[32] = {0};
-			int  src_buf_cap =  array_count(src_buf);
-			int  src_buf_len = 0;
-			
 			char *dst = 0, *src = 0;
 			char *size = "byte";
 			
@@ -523,7 +504,7 @@ static void decode_8086(char *name, u8 *data, int len, bool print_labels) {
 						sign = disp < 0 ? '-' : '+';
 						disp = disp < 0 ? -disp : disp;
 						
-						dst_buf_len = snprintf(dst_buf, dst_buf_cap, "[%s %c %i]", addr_table[b1 & 0x07], sign, disp);
+						dst = tsprintf("[%s %c %i]", addr_table[b1 & 0x07], sign, disp);
 					} else if ((b1 & 0x07) == 0x06) {
 						assert(idx + 1 < len);
 						
@@ -534,12 +515,10 @@ static void decode_8086(char *name, u8 *data, int len, bool print_labels) {
 						// to be unsigned.
 						u16 disp = ((u16) b2 | ((u16) b3 << 8));
 						
-						dst_buf_len = snprintf(dst_buf, dst_buf_cap, "[%u]", disp);
+						dst = tsprintf("[%u]", disp);
 					} else {
-						dst_buf_len = snprintf(dst_buf, dst_buf_cap, "[%s]", addr_table[b1 & 0x07]);
+						dst = tsprintf("[%s]", addr_table[b1 & 0x07]);
 					}
-					
-					dst = dst_buf;
 				}
 				
 				if (is_1st_variant) {
@@ -564,8 +543,7 @@ static void decode_8086(char *name, u8 *data, int len, bool print_labels) {
 						size = "word";
 					}
 					
-					src_buf_len = snprintf(src_buf, src_buf_cap, "%u", (u32) imm);
-					src = src_buf;
+					src = tsprintf("%u", (u32) imm);
 				}
 				
 				// If the D flag is set AND we're in the first variant of the instruction:
