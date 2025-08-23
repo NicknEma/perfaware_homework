@@ -94,8 +94,8 @@ enum {
 } register_name_enum;
 
 static void simulate_8086_instruction(instruction instr, u16 *registers, u32 register_count) {
-	i32 imm_value = 0;
-	i32 *operand_ptrs[array_count(instr.Operands)] = {0};
+	u16 imm_value = 0;
+	u16 *operand_ptrs[array_count(instr.Operands)] = {0};
 	u32 size = 0;
 	
 	char *operand_strings[array_count(instr.Operands)] = {0};
@@ -112,8 +112,8 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 					
 					size = operand->Register.Count;
 					
-					i32 *address = (i32 *) &registers[operand->Register.Index];
-					address = (i32 *) ((u8 *) address + operand->Register.Offset);
+					u16 *address = (u16 *) &registers[operand->Register.Index];
+					address = (u16 *) ((u8 *) address + operand->Register.Offset);
 					operand_ptrs[operand_index] = address;
 					
 					operand_strings[operand_index] = (char *) Sim86_RegisterNameFromOperand(&operand->Register);
@@ -133,8 +133,8 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 		case Op_mov: {
 			assert(size != 0);
 			
-			i32 source_val = 0;
-			i32 dest_val = 0;
+			u16 source_val = 0;
+			u16 dest_val = 0;
 			
 			memcpy(&source_val, operand_ptrs[1], size);
 			memcpy(&dest_val, operand_ptrs[0], size);
@@ -142,11 +142,11 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			char *dest_str = operand_strings[0];
 			printf("%s:%x -> ", dest_str, dest_val);
 			
-			i32 result = source_val;
+			u16 result = source_val;
 			
 			memcpy(operand_ptrs[0], &result, size);
 			
-			i32 new_dest_val = 0;
+			u16 new_dest_val = 0;
 			memcpy(&new_dest_val, operand_ptrs[0], size);
 			printf("%x", new_dest_val);
 		} break;
