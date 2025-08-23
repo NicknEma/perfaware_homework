@@ -140,7 +140,7 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			memcpy(&dest_val, operand_ptrs[0], size);
 			
 			char *dest_str = operand_strings[0];
-			printf("%s:%x -> ", dest_str, dest_val);
+			printf("%s: 0x%x (%i) -> ", dest_str, dest_val);
 			
 			u16 result = source_val;
 			
@@ -148,7 +148,7 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			
 			u16 new_dest_val = 0;
 			memcpy(&new_dest_val, operand_ptrs[0], size);
-			printf("%x", new_dest_val);
+			printf("0x%x (%i)", new_dest_val);
 		} break;
 	}
 }

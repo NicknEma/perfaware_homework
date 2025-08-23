@@ -243,7 +243,7 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			
 			if (info.writeback) {
 				char *dest_str = operand_strings[info.dest_op_index];
-				printf("%s:%x (%i) -> ", dest_str, dest_val, dest_val);
+				printf("%s: 0x%x (%i) -> ", dest_str, dest_val, dest_val);
 			}
 			
 			u16 result = info.impl(dest_val, source_val);
@@ -255,7 +255,7 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			u16 new_dest_val = 0;
 			memcpy(&new_dest_val, operand_ptrs[info.dest_op_index], size);
 			if (info.writeback) {
-				printf("%x (%i)", new_dest_val, new_dest_val);
+				printf("0x%x (%i) ", new_dest_val, new_dest_val);
 			}
 			
 			if (info.flags_affected & Flag_C) {
@@ -301,9 +301,9 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 	cpu_flags new_flags = registers[Register_flags];
 	
 	if (old_flags != new_flags) {
-		printf("\tFlags: ");
+		printf("flags: ");
 		print_cpu_flags(old_flags);
-		printf("->");
+		printf(" -> ");
 		print_cpu_flags(new_flags);
 	}
 }
@@ -341,7 +341,7 @@ static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code
 		}
 	}
 	
-	printf("    Flags: ");
+	printf("    flags: ");
 	print_cpu_flags(registers[Register_flags]);
 	printf("\n");
 	
