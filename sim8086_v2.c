@@ -241,8 +241,10 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			memcpy(&source_val, operand_ptrs[info.source_op_index], size);
 			memcpy(&dest_val, operand_ptrs[info.dest_op_index], size);
 			
-			char *dest_str = operand_strings[info.dest_op_index];
-			printf("%s:%x (%i) -> ", dest_str, dest_val, dest_val);
+			if (info.writeback) {
+				char *dest_str = operand_strings[info.dest_op_index];
+				printf("%s:%x (%i) -> ", dest_str, dest_val, dest_val);
+			}
 			
 			u16 result = info.impl(dest_val, source_val);
 			
@@ -252,7 +254,9 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			
 			u16 new_dest_val = 0;
 			memcpy(&new_dest_val, operand_ptrs[info.dest_op_index], size);
-			printf("%x (%i)", new_dest_val, new_dest_val);
+			if (info.writeback) {
+				printf("%x (%i)", new_dest_val, new_dest_val);
+			}
 			
 			if (info.flags_affected & Flag_C) {
 				
