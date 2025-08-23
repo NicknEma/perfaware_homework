@@ -36,12 +36,6 @@ static u32 read_file_into_buffer(u8 *buffer, u32 buffer_size, char *name) {
 	return bytes_read;
 }
 
-typedef struct Mem8086 Mem8086;
-struct Mem8086 {
-	u8 *data;
-	i64 len;
-};
-
 static void print_8086_instruction(instruction instr) {
 	char *mnemonic = (char *) Sim86_MnemonicFromOperationType(instr.Op);
 	printf("%s ", mnemonic);
