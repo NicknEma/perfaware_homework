@@ -276,7 +276,7 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			}
 			
 			if (info.flags_affected & Flag_P) {
-				if (count_ones_i8(new_dest_val & 0xFF) % 2 == 0) {
+				if (count_ones_i8(result & 0xFF) % 2 == 0) {
 					registers[Register_flags] |= Flag_P;
 				} else {
 					registers[Register_flags] &= ~Flag_P;
