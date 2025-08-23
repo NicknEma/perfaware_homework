@@ -330,10 +330,16 @@ static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code
 	
 	printf("\nFinal registers:\n");
 	for (int reg_index = 1; reg_index < Register_Count; reg_index += 1) {
-		register_access reg = {reg_index, 0, 2};
-		printf("\t%s: 0x%x (%i)\n", Sim86_RegisterNameFromOperand(&reg),
-			   registers[reg_index], registers[reg_index]);
+		if (reg_index != Register_flags) {
+			register_access reg = {reg_index, 0, 2};
+			printf("\t%s: 0x%x (%i)\n", Sim86_RegisterNameFromOperand(&reg),
+				   registers[reg_index], registers[reg_index]);
+		}
 	}
+	
+	printf("    Flags: ");
+	print_cpu_flags(registers[Register_flags]);
+	printf("\n");
 	
 	printf("\n");
 	
