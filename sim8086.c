@@ -166,37 +166,6 @@ static arithmetic_op_info arithmetic_op_info_from_op(operation_type op) {
 	return info;
 }
 
-typedef struct conditional_jump_info conditional_jump_info;
-struct conditional_jump_info {
-	operation_type type;
-	cpu_flags flags_expr;
-	cpu_flags flags_result;
-};
-/*
-static conditional_jump_info conditional_jumps[] = {
-	{Op_None, 0, 0},
-	{op_je, Flag_Z, 1},
-    {op_jl, Flag_S ^ Flag_O},
-    {op_jle, },
-    {op_jb, },
-    {op_jbe, },
-    {op_jp, },
-    {op_jo, },
-    {op_js, },
-    {op_jne, },
-    {op_jnl, },
-    {op_jg, },
-    {op_jnb, },
-    {op_ja, },
-    {op_jnp, },
-    {op_jno, },
-    {op_jns, },
-    {op_loop, },
-    {op_loopz, },
-    {op_loopnz, },
-    {op_jcxz, },
-};
-*/
 static void print_cpu_flags(cpu_flags flags) {
 	static char flags_chars[] = {
 		[Flag_C_shift] = 'C',
