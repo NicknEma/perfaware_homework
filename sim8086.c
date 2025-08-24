@@ -231,6 +231,8 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 	
 	cpu_flags old_flags = registers[Register_flags];
 	
+	bool jump_condition_true = 0;
+	
 	switch (instr.Op) {
 		case Op_None: break;
 		
@@ -335,6 +337,105 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 				char *dest_str = operand_strings[info.dest_op_index];
 				printf("%s: 0x%x (%i) -> 0x%x (%i) ", dest_str, dest_val, dest_val,
 					   new_dest_val, new_dest_val);
+			}
+		} break;
+		
+		case Op_je: {
+			jump_condition_true = (registers[Register_flags] >> Flag_Z_shift == 1);
+		} goto do_jump;
+		
+		case Op_jl: {
+			jump_condition_true = ((registers[Register_flags] >> Flag_S_shift) ^
+								   (registers[Register_flags] >> Flag_O_shift)) == 1;
+		} goto do_jump;
+		
+		case Op_jle: {
+			jump_condition_true = (((registers[Register_flags] >> Flag_S_shift) ^
+									(registers[Register_flags] >> Flag_O_shift)) |
+								   (registers[Register_flags] >> Flag_Z_shift)) == 1;
+		} goto do_jump;
+		
+		case Op_jb: {
+			jump_condition_true = registers[Register_flags] >> Flag_C_shift == 1;
+		} goto do_jump;
+		
+		case Op_jbe: {
+			jump_condition_true = ((registers[Register_flags] >> Flag_C_shift) |
+								   (registers[Register_flags] >> Flag_Z_shift)) == 1;
+		} goto do_jump;
+		
+		case Op_jp: {
+			jump_condition_true = registers[Register_flags] >> Flag_P_shift == 1;
+		} goto do_jump;
+		
+		case Op_jo: {
+			jump_condition_true = registers[Register_flags] >> Flag_O_shift == 1;
+		} goto do_jump;
+		
+		case Op_js: {
+			jump_condition_true = registers[Register_flags] >> Flag_S_shift == 1;
+		} goto do_jump;
+		
+		case Op_jne: {
+			jump_condition_true = registers[Register_flags] >> Flag_Z_shift == 0;
+		} goto do_jump;
+		
+		case Op_jnl: {
+			jump_condition_true = ((registers[Register_flags] >> Flag_S_shift) ^
+								   (registers[Register_flags] >> Flag_O_shift)) == 0;
+		} goto do_jump;
+		
+		case Op_jg: {
+			jump_condition_true = (((registers[Register_flags] >> Flag_S_shift) ^
+									(registers[Register_flags] >> Flag_O_shift)) |
+								   (registers[Register_flags] >> Flag_Z_shift)) == 0;
+		} goto do_jump;
+		
+		case Op_jnb: {
+			jump_condition_true = registers[Register_flags] >> Flag_C_shift == 0;
+		} goto do_jump;
+		
+		case Op_ja: {
+			jump_condition_true = ((registers[Register_flags] >> Flag_C_shift) |
+								   (registers[Register_flags] >> Flag_Z_shift)) == 0;
+		} goto do_jump;
+		
+		case Op_jnp: {
+			jump_condition_true = registers[Register_flags] >> Flag_P_shift == 0;
+		} goto do_jump;
+		
+		case Op_jno: {
+			jump_condition_true = registers[Register_flags] >> Flag_O_shift == 0;
+		} goto do_jump;
+		
+		case Op_jns: {
+			jump_condition_true = registers[Register_flags] >> Flag_S_shift == 0;
+		} goto do_jump;
+		
+		case Op_loop: {
+			registers[Register_c] -= 1;
+			jump_condition_true = registers[Register_c] != 0;
+		} goto do_jump;
+		
+		case Op_loopz: {
+			registers[Register_c] -= 1;
+			jump_condition_true = (registers[Register_c] != 0 &&
+								   registers[Register_flags] >> Flag_Z_shift == 1);
+		} goto do_jump;
+		
+		case Op_loopnz: {
+			registers[Register_c] -= 1;
+			jump_condition_true = (registers[Register_c] != 0 &&
+								   registers[Register_flags] >> Flag_Z_shift == 0);
+		} goto do_jump;
+		
+		case Op_jcxz: {
+			jump_condition_true = registers[Register_c] == 0;
+			
+			do_jump:;
+			if (jump_condition_true) {
+				i8 offset = (i8) instr.Operands[0].Immediate.Value;
+				registers[Register_ip] += offset;
 			}
 		} break;
 	}
