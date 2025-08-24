@@ -196,7 +196,7 @@ static int count_ones_i8(i8 n) {
 	return ones;
 }
 
-static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 register_count) {
+static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 register_count, u8 *memory, u32 memory_size) {
 	bool halt = 0;
 	
 	u16 imm_value = 0;
@@ -210,10 +210,52 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			switch (operand->Type) {
 				case Operand_None: break;
 				
+				case Operand_Memory: {
+					u32 operand_size = instr.Flags & Inst_Wide ? 2 : 1;
+					if (size == 0) {
+						size = operand_size;
+					}
+					assert(size == operand_size);
+					
+					effective_address_expression *expr = &operand->Address;
+					effective_address_term *term0 = &expr->Terms[0];
+					effective_address_term *term1 = &expr->Terms[1];
+					
+					i32 term0_val = 0;
+					{
+						u32 term0_size = term0->Register.Count;
+						u16 *term0_ptr = (u16 *) &registers[term0->Register.Index];
+						term0_ptr = (u16 *) ((u8 *) term0_ptr + term0->Register.Offset);
+						memcpy(&term0_val, term0_ptr, term0_size);
+					}
+					
+					i32 term1_val = 0;
+					{
+						u32 term1_size = term1->Register.Count;
+						u16 *term1_ptr = (u16 *) &registers[term1->Register.Index];
+						term1_ptr = (u16 *) ((u8 *) term1_ptr + term1->Register.Offset);
+						memcpy(&term1_val, term1_ptr, term1_size);
+					}
+					
+					u32 offset = term0->Scale * term0_val + term1->Scale * term1_val;
+					if (expr->Flags & Address_ExplicitSegment) {
+						offset += (expr->ExplicitSegment << 4);
+					}
+					offset += expr->Displacement;
+					
+					assert(offset < memory_size);
+					
+					operand_ptrs[operand_index] = (u16 *) (memory + offset);
+				} break;
+				
 				case Operand_Register: {
 					assert(operand->Register.Index < register_count);
 					
-					size = operand->Register.Count;
+					u32 operand_size = operand->Register.Count;
+					if (size == 0) {
+						size = operand_size;
+					}
+					assert(size == operand_size);
 					
 					u16 *address = (u16 *) &registers[operand->Register.Index];
 					address = (u16 *) ((u8 *) address + operand->Register.Offset);
@@ -469,7 +511,8 @@ static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code
 			if (exec) {
 				printf(" ; ");
 				
-				bool halt = simulate_8086_instruction(decoded, registers, array_count(registers));
+				bool halt = simulate_8086_instruction(decoded, registers, array_count(registers),
+													  memory, memory_size);
 				
 				u16 new_register_vals[Register_Count] = {0};
 				memcpy(new_register_vals, registers, sizeof(u16) * Register_Count);
