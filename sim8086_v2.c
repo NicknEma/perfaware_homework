@@ -271,7 +271,18 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			}
 			
 			if (info.flags_affected & Flag_A) {
-				
+				bool aux = 0;
+				u16 sign_bit = 1 << 3;
+				if (info.flags & Aop_flag_addish) {
+					aux = (((dest_val & source_val) | ((dest_val ^ source_val) & ~result)) & sign_bit) != 0;
+				} else if (info.flags & Aop_flag_subbish) {
+					aux = (((source_val & result) | ((source_val ^ result) & ~dest_val)) & sign_bit) != 0;
+				}
+				if (aux) {
+					registers[Register_flags] |= Flag_A;
+				} else {
+					registers[Register_flags] &= ~Flag_A;
+				}
 			}
 			
 			if (info.flags_affected & Flag_S) {
