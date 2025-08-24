@@ -260,7 +260,7 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			
 			if (info.flags_affected & Flag_S) {
 				u16 sign_bit = 1 << (8 * size - 1);
-				if (new_dest_val & sign_bit) {
+				if (result & sign_bit) {
 					registers[Register_flags] |= Flag_S;
 				} else {
 					registers[Register_flags] &= ~Flag_S;
@@ -268,7 +268,7 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			}
 			
 			if (info.flags_affected & Flag_Z) {
-				if (new_dest_val == 0) {
+				if (result == 0) {
 					registers[Register_flags] |= Flag_Z;
 				} else {
 					registers[Register_flags] &= ~Flag_Z;
