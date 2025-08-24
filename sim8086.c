@@ -193,7 +193,9 @@ static int count_ones_i8(i8 n) {
 	return ones;
 }
 
-static void simulate_8086_instruction(instruction instr, u16 *registers, u32 register_count) {
+static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 register_count) {
+	bool halt = 0;
+	
 	u16 imm_value = 0;
 	u16 *operand_ptrs[array_count(instr.Operands)] = {0};
 	u32 size = 0;
@@ -231,6 +233,10 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 	
 	switch (instr.Op) {
 		case Op_None: break;
+		
+		case Op_hlt: {
+			halt = 1;
+		} break;
 		
 		case Op_mov:
 		case Op_add:
@@ -341,6 +347,8 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 		printf(" -> ");
 		print_cpu_flags(new_flags);
 	}
+	
+	return halt;
 }
 
 static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code_len, bool exec) {
@@ -358,7 +366,8 @@ static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code
 			print_8086_instruction(decoded);
 			if (exec) {
 				printf(" ; ");
-				simulate_8086_instruction(decoded, registers, array_count(registers));
+				bool halt = simulate_8086_instruction(decoded, registers, array_count(registers));
+				if (halt) break;
 			}
 			printf("\n");
 		} else {
