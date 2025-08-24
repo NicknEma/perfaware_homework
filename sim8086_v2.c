@@ -256,7 +256,18 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			memcpy(&new_dest_val, operand_ptrs[info.dest_op_index], size);
 			
 			if (info.flags_affected & Flag_C) {
-				
+				bool carry = 0;
+				u16 sign_bit = 1 << (8 * size - 1);
+				if (info.flags & Aop_flag_addish) {
+					carry = (((dest_val & source_val) | ((dest_val ^ source_val) & ~result)) & sign_bit) != 0;
+				} else if (info.flags & Aop_flag_subbish) {
+					carry = (((source_val & result) | ((source_val ^ result) & ~dest_val)) & sign_bit) != 0;
+				}
+				if (carry) {
+					registers[Register_flags] |= Flag_C;
+				} else {
+					registers[Register_flags] &= ~Flag_C;
+				}
 			}
 			
 			if (info.flags_affected & Flag_A) {
