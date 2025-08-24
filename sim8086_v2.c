@@ -119,12 +119,19 @@ enum {
 	Flag_O = 1 << Flag_O_shift,
 } cpu_flags_enum;
 
+typedef u8 arithmetic_op_flags;
+enum {
+	Aop_flag_writeback = 1 << 0,
+	Aop_flag_addish    = 1 << 1, // Can be considered an add for the purposes of computing the OF
+	Aop_flag_subbish   = 1 << 2, // Can be considered a sub for the purposes of computing the OF
+} arithmetic_op_flags_enum;
+
 typedef struct arithmetic_op_info arithmetic_op_info;
 struct arithmetic_op_info {
 	operation_type type;
 	i32 source_op_index;
 	i32 dest_op_index;
-	bool writeback;
+	arithmetic_op_flags flags;
 	cpu_flags flags_affected;
 	u16 (*impl)(u16 op1, u16 op2);
 };
@@ -138,11 +145,11 @@ static u16 sub_impl(u16 op1, u16 op2) { return op1 - op2; }
 #pragma warning(pop)
 
 static arithmetic_op_info arithmetic_ops[] = {
-	{Op_None, 0, 0, 0, 0, nop_impl},
-	{Op_mov, 1, 0, 1, 0, mov_impl},
-	{Op_add, 1, 0, 1, Flag_A|Flag_C|Flag_O|Flag_P|Flag_S|Flag_Z, add_impl},
-	{Op_sub, 1, 0, 1, Flag_A|Flag_C|Flag_O|Flag_P|Flag_S|Flag_Z, sub_impl},
-	{Op_cmp, 1, 0, 0, Flag_A|Flag_C|Flag_O|Flag_P|Flag_S|Flag_Z, sub_impl},
+	{Op_None, 0, 0, 0,                                   0,                                         nop_impl},
+	{Op_mov,  1, 0, Aop_flag_writeback,                  0,                                         mov_impl},
+	{Op_add,  1, 0, Aop_flag_writeback|Aop_flag_addish,  Flag_A|Flag_C|Flag_O|Flag_P|Flag_S|Flag_Z, add_impl},
+	{Op_sub,  1, 0, Aop_flag_writeback|Aop_flag_subbish, Flag_A|Flag_C|Flag_O|Flag_P|Flag_S|Flag_Z, sub_impl},
+	{Op_cmp,  1, 0,                    Aop_flag_subbish, Flag_A|Flag_C|Flag_O|Flag_P|Flag_S|Flag_Z, sub_impl},
 };
 
 static arithmetic_op_info arithmetic_op_info_from_op(operation_type op) {
@@ -213,8 +220,6 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 				} break;
 				
 				case Operand_Immediate: {
-					assert((operand->Immediate.Value & 0xFFFF0000) == 0);
-					
 					imm_value = (u16) operand->Immediate.Value;
 					operand_ptrs[operand_index] = &imm_value;
 				} break;
@@ -243,7 +248,7 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			
 			u16 result = info.impl(dest_val, source_val);
 			
-			if (info.writeback) {
+			if (info.flags & Aop_flag_writeback) {
 				memcpy(operand_ptrs[info.dest_op_index], &result, size);
 			}
 			
@@ -284,12 +289,23 @@ static void simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			}
 			
 			if (info.flags_affected & Flag_O) {
-				
+				bool overflow = 0;
+				u16 sign_bit = 1 << (8 * size - 1);
+				if (info.flags & Aop_flag_addish) {
+					overflow = (~(dest_val ^ source_val) & (source_val ^ result) & sign_bit) != 0;
+				} else if (info.flags & Aop_flag_subbish) {
+					overflow = ((dest_val ^ source_val) & ~(source_val ^ result) & sign_bit) != 0;
+				}
+				if (overflow) {
+					registers[Register_flags] |= Flag_O;
+				} else {
+					registers[Register_flags] &= ~Flag_O;
+				}
 			}
 			
 			if (dest_val != new_dest_val) {
 				char *dest_str = operand_strings[info.dest_op_index];
-				printf("%s: 0x%x (%i) -> 0x%x (%i)", dest_str, dest_val, dest_val,
+				printf("%s: 0x%x (%i) -> 0x%x (%i) ", dest_str, dest_val, dest_val,
 					   new_dest_val, new_dest_val);
 			}
 		} break;
