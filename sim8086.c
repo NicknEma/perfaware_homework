@@ -348,12 +348,12 @@ static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code
 	
 	u16 registers[Register_Count] = {0};
 	
-	u32 offset = 0;
-	while (offset < code_len) {
+	registers[Register_ip] = 0;
+	while (registers[Register_ip] < code_len) {
 		instruction decoded = {0};
-		Sim86_Decode8086Instruction(code_len - offset, code + offset, &decoded);
+		Sim86_Decode8086Instruction(code_len - registers[Register_ip], code + registers[Register_ip], &decoded);
 		if (decoded.Op) {
-			offset += decoded.Size;
+			registers[Register_ip] += (u16) decoded.Size;
 			
 			print_8086_instruction(decoded);
 			if (exec) {
