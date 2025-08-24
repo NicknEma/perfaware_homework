@@ -220,8 +220,6 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 					u16 *address = (u16 *) &registers[operand->Register.Index];
 					address = (u16 *) ((u8 *) address + operand->Register.Offset);
 					operand_ptrs[operand_index] = address;
-					
-					operand_strings[operand_index] = (char *) Sim86_RegisterNameFromOperand(&operand->Register);
 				} break;
 				
 				case Operand_Immediate: {
@@ -335,12 +333,6 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 					registers[Register_flags] &= ~Flag_O;
 				}
 			}
-			
-			if (dest_val != new_dest_val) {
-				char *dest_str = operand_strings[info.dest_op_index];
-				printf("%s: 0x%x (%i) -> 0x%x (%i) ", dest_str, dest_val, dest_val,
-					   new_dest_val, new_dest_val);
-			}
 		} break;
 		
 		case Op_je: {
@@ -443,15 +435,6 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 		} break;
 	}
 	
-	cpu_flags new_flags = registers[Register_flags];
-	
-	if (old_flags != new_flags) {
-		printf("flags: ");
-		print_cpu_flags(old_flags);
-		printf(" -> ");
-		print_cpu_flags(new_flags);
-	}
-	
 	return halt;
 }
 
@@ -465,12 +448,38 @@ static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code
 		instruction decoded = {0};
 		Sim86_Decode8086Instruction(code_len - registers[Register_ip], code + registers[Register_ip], &decoded);
 		if (decoded.Op) {
+			u16 old_register_vals[Register_Count] = {0};
+			memcpy(old_register_vals, registers, sizeof(u16) * Register_Count);
+			
 			registers[Register_ip] += (u16) decoded.Size;
 			
 			print_8086_instruction(decoded);
 			if (exec) {
 				printf(" ; ");
+				
 				bool halt = simulate_8086_instruction(decoded, registers, array_count(registers));
+				
+				u16 new_register_vals[Register_Count] = {0};
+				memcpy(new_register_vals, registers, sizeof(u16) * Register_Count);
+				
+				for (int reg_index = 0; reg_index < Register_Count; reg_index += 1) {
+					if (reg_index != Register_flags && old_register_vals[reg_index] != new_register_vals[reg_index]) {
+						register_access reg = {reg_index, 0, 2};
+						printf("%s: 0x%x->0x%x, ", Sim86_RegisterNameFromOperand(&reg),
+							   old_register_vals[reg_index], new_register_vals[reg_index]);
+					}
+				}
+				
+				cpu_flags old_flags = old_register_vals[Register_flags];
+				cpu_flags new_flags = new_register_vals[Register_flags];
+				
+				if (old_flags != new_flags) {
+					printf("flags: ");
+					print_cpu_flags(old_flags);
+					printf("->");
+					print_cpu_flags(new_flags);
+				}
+				
 				if (halt) break;
 			}
 			printf("\n");
