@@ -166,6 +166,37 @@ static arithmetic_op_info arithmetic_op_info_from_op(operation_type op) {
 	return info;
 }
 
+typedef struct conditional_jump_info conditional_jump_info;
+struct conditional_jump_info {
+	operation_type type;
+	cpu_flags flags_expr;
+	cpu_flags flags_result;
+};
+/*
+static conditional_jump_info conditional_jumps[] = {
+	{Op_None, 0, 0},
+	{op_je, Flag_Z, 1},
+    {op_jl, Flag_S ^ Flag_O},
+    {op_jle, },
+    {op_jb, },
+    {op_jbe, },
+    {op_jp, },
+    {op_jo, },
+    {op_js, },
+    {op_jne, },
+    {op_jnl, },
+    {op_jg, },
+    {op_jnb, },
+    {op_ja, },
+    {op_jnp, },
+    {op_jno, },
+    {op_jns, },
+    {op_loop, },
+    {op_loopz, },
+    {op_loopnz, },
+    {op_jcxz, },
+};
+*/
 static void print_cpu_flags(cpu_flags flags) {
 	static char flags_chars[] = {
 		[Flag_C_shift] = 'C',
@@ -203,8 +234,6 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 	u16 *operand_ptrs[array_count(instr.Operands)] = {0};
 	u32 size = 0;
 	
-	char *operand_strings[array_count(instr.Operands)] = {0};
-	
 	for (int operand_index = 0; operand_index < array_count(instr.Operands); operand_index += 1) {
 		instruction_operand *operand = &instr.Operands[operand_index];
 		
@@ -229,8 +258,6 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			}
 		}
 	}
-	
-	cpu_flags old_flags = registers[Register_flags];
 	
 	bool jump_condition_true = 0;
 	
@@ -336,75 +363,91 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 		} break;
 		
 		case Op_je: {
-			jump_condition_true = (registers[Register_flags] >> Flag_Z_shift == 1);
+			u16 flag_expr = registers[Register_flags] >> Flag_Z_shift & 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jl: {
-			jump_condition_true = ((registers[Register_flags] >> Flag_S_shift) ^
-								   (registers[Register_flags] >> Flag_O_shift)) == 1;
+			u16 flag_expr = ((registers[Register_flags] >> Flag_S_shift) ^
+							 (registers[Register_flags] >> Flag_O_shift)) & 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jle: {
-			jump_condition_true = (((registers[Register_flags] >> Flag_S_shift) ^
-									(registers[Register_flags] >> Flag_O_shift)) |
-								   (registers[Register_flags] >> Flag_Z_shift)) == 1;
+			u16 flag_expr = (((registers[Register_flags] >> Flag_S_shift) ^
+							  (registers[Register_flags] >> Flag_O_shift)) |
+							 (registers[Register_flags] >> Flag_Z_shift)) & 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jb: {
-			jump_condition_true = registers[Register_flags] >> Flag_C_shift == 1;
+			u16 flag_expr = registers[Register_flags] >> Flag_C_shift & 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jbe: {
-			jump_condition_true = ((registers[Register_flags] >> Flag_C_shift) |
-								   (registers[Register_flags] >> Flag_Z_shift)) == 1;
+			u16 flag_expr = ((registers[Register_flags] >> Flag_C_shift) |
+							 (registers[Register_flags] >> Flag_Z_shift)) & 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jp: {
-			jump_condition_true = registers[Register_flags] >> Flag_P_shift == 1;
+			u16 flag_expr = registers[Register_flags] >> Flag_P_shift & 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jo: {
-			jump_condition_true = registers[Register_flags] >> Flag_O_shift == 1;
+			u16 flag_expr = registers[Register_flags] >> Flag_O_shift & 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_js: {
-			jump_condition_true = registers[Register_flags] >> Flag_S_shift == 1;
+			u16 flag_expr = registers[Register_flags] >> Flag_S_shift & 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jne: {
-			jump_condition_true = registers[Register_flags] >> Flag_Z_shift == 0;
+			u16 flag_expr = registers[Register_flags] >> Flag_Z_shift ^ 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jnl: {
-			jump_condition_true = ((registers[Register_flags] >> Flag_S_shift) ^
-								   (registers[Register_flags] >> Flag_O_shift)) == 0;
+			u16 flag_expr = ((registers[Register_flags] >> Flag_S_shift) ^
+							 (registers[Register_flags] >> Flag_O_shift)) ^ 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jg: {
-			jump_condition_true = (((registers[Register_flags] >> Flag_S_shift) ^
-									(registers[Register_flags] >> Flag_O_shift)) |
-								   (registers[Register_flags] >> Flag_Z_shift)) == 0;
+			u16 flag_expr = (((registers[Register_flags] >> Flag_S_shift) ^
+							  (registers[Register_flags] >> Flag_O_shift)) |
+							 (registers[Register_flags] >> Flag_Z_shift)) ^ 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jnb: {
-			jump_condition_true = registers[Register_flags] >> Flag_C_shift == 0;
+			u16 flag_expr = registers[Register_flags] >> Flag_C_shift ^ 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_ja: {
-			jump_condition_true = ((registers[Register_flags] >> Flag_C_shift) |
-								   (registers[Register_flags] >> Flag_Z_shift)) == 0;
+			u16 flag_expr = ((registers[Register_flags] >> Flag_C_shift) |
+							 (registers[Register_flags] >> Flag_Z_shift)) ^ 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jnp: {
-			jump_condition_true = registers[Register_flags] >> Flag_P_shift == 0;
+			u16 flag_expr = registers[Register_flags] >> Flag_P_shift ^ 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jno: {
-			jump_condition_true = registers[Register_flags] >> Flag_O_shift == 0;
+			u16 flag_expr = registers[Register_flags] >> Flag_O_shift ^ 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_jns: {
-			jump_condition_true = registers[Register_flags] >> Flag_S_shift == 0;
+			u16 flag_expr = registers[Register_flags] >> Flag_S_shift ^ 1;
+			jump_condition_true = flag_expr == 1;
 		} goto do_jump;
 		
 		case Op_loop: {
@@ -414,14 +457,14 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 		
 		case Op_loopz: {
 			registers[Register_c] -= 1;
-			jump_condition_true = (registers[Register_c] != 0 &&
-								   registers[Register_flags] >> Flag_Z_shift == 1);
+			u16 flag_expr = registers[Register_flags] >> Flag_Z_shift & 1;
+			jump_condition_true = (registers[Register_c] != 0 && flag_expr == 1);
 		} goto do_jump;
 		
 		case Op_loopnz: {
 			registers[Register_c] -= 1;
-			jump_condition_true = (registers[Register_c] != 0 &&
-								   registers[Register_flags] >> Flag_Z_shift == 0);
+			u16 flag_expr = registers[Register_flags] >> Flag_Z_shift ^ 1;
+			jump_condition_true = (registers[Register_c] != 0 && flag_expr == 1);
 		} goto do_jump;
 		
 		case Op_jcxz: {
