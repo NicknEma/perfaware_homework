@@ -57,14 +57,17 @@ static void print_8086_instruction(instruction instr) {
 				} break;
 				
 				case Operand_Immediate: {
-					char *imm_format = "%i";
-					
 					immediate *imm = &operand->Immediate;
+					
+					char *imm_format = "%i";
+					i32 imm_value = imm->Value;
+					
 					if (imm->Flags & Immediate_RelativeJumpDisplacement) {
 						imm_format = "$%+i";
+						imm_value += 2;
 					}
 					
-					printf(imm_format, imm->Value);
+					printf(imm_format, imm_value);
 				} break;
 			}
 		}
