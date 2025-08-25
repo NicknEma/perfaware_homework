@@ -25,15 +25,33 @@ static u32 read_file_into_buffer(u8 *buffer, u32 buffer_size, char *name) {
 		
 		bytes_read = (u32) fread(buffer, 1, to_read, file);
 		if (bytes_read != to_read) {
-			fprintf(stderr, "Error reading the file\n");
+			fprintf(stderr, "Error reading file '%s'\n", name);
 		}
 		
 		fclose(file);
 	} else {
-		fprintf(stderr, "Error opening the file\n");
+		fprintf(stderr, "Error opening file '%s'\n", name);
 	}
 	
 	return bytes_read;
+}
+
+static u32 write_buffer_to_file(u8 *buffer, u32 buffer_size, char *name) {
+	u32 bytes_written = 0;
+	
+	FILE *file = fopen(name, "wb");
+	if (file) {
+		bytes_written = (u32) fwrite(buffer, 1, buffer_size, file);
+		if (bytes_written != buffer_size) {
+			fprintf(stderr, "Error writing to file '%s'\n", name);
+		}
+		
+		fclose(file);
+	} else {
+		fprintf(stderr, "Error opening file '%s'\n", name);
+	}
+	
+	return bytes_written;
 }
 
 static void print_8086_instruction(instruction instr) {
@@ -572,13 +590,14 @@ int main(int argc, char **argv) {
 		ok = 0;
 	}
 	
-	u32 memory_size = 1024 * 4;
+	u32 memory_size = 1024 * 64;
 	u8 *memory = 0;
 	
 	u32 code_len = 0;
 	
 	char *file_name = "";
 	bool exec = 0;
+	bool dump = 0;
 	
 	if (ok) {
 		// NOTE(ema): This command-line parsing is really stupid and it only keeps the last string
@@ -589,6 +608,11 @@ int main(int argc, char **argv) {
 				exec = 1;
 			}
 			
+			if (memcmp(argv[i], str_expand_pfirst("-dump")) == 0) {
+				dump = 1;
+			}
+			
+			if (memcmp(argv[i], str_expand_pfirst("-show")) == 0) {
 			if (argv[i][0] != '-') {
 				file_name = argv[i];
 			}
@@ -612,7 +636,11 @@ int main(int argc, char **argv) {
 	}
 	
 	if (ok) {
-		simulate_8086(memory, memory_size, 0, code_len, exec);
+		simulate_8086(memory, memory_size, 0, code_len, exec, show);
+		
+		if (dump) {
+			write_buffer_to_file(memory, memory_size, "dump.data");
+		}
 	}
 	
 	return !ok;
