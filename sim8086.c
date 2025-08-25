@@ -510,7 +510,7 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 	return halt;
 }
 
-static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code_len, bool exec) {
+static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code_len, bool exec, bool show) {
 	u8 *code = memory + code_offset;
 	
 	u16 registers[Register_Count] = {0};
@@ -521,41 +521,52 @@ static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code
 		Sim86_Decode8086Instruction(code_len - registers[Register_ip], code + registers[Register_ip], &decoded);
 		if (decoded.Op) {
 			u16 old_register_vals[Register_Count] = {0};
-			memcpy(old_register_vals, registers, sizeof(u16) * Register_Count);
+			if (show) {
+				memcpy(old_register_vals, registers, sizeof(u16) * Register_Count);
+			}
 			
 			registers[Register_ip] += (u16) decoded.Size;
 			
-			print_8086_instruction(decoded);
+			if (show) {
+				print_8086_instruction(decoded);
+			}
 			if (exec) {
-				printf(" ; ");
+				if (show) {
+					printf(" ; ");
+				}
 				
 				bool halt = simulate_8086_instruction(decoded, registers, array_count(registers),
 													  memory, memory_size);
 				
-				u16 new_register_vals[Register_Count] = {0};
-				memcpy(new_register_vals, registers, sizeof(u16) * Register_Count);
-				
-				for (int reg_index = 0; reg_index < Register_Count; reg_index += 1) {
-					if (reg_index != Register_flags && old_register_vals[reg_index] != new_register_vals[reg_index]) {
-						register_access reg = {reg_index, 0, 2};
-						printf("%s: 0x%x->0x%x, ", Sim86_RegisterNameFromOperand(&reg),
-							   old_register_vals[reg_index], new_register_vals[reg_index]);
+				if (show) {
+					u16 new_register_vals[Register_Count] = {0};
+					memcpy(new_register_vals, registers, sizeof(u16) * Register_Count);
+					
+					for (int reg_index = 0; reg_index < Register_Count; reg_index += 1) {
+						if (reg_index != Register_flags && old_register_vals[reg_index] != new_register_vals[reg_index]) {
+							register_access reg = {reg_index, 0, 2};
+							printf("%s: 0x%x->0x%x, ", Sim86_RegisterNameFromOperand(&reg),
+								   old_register_vals[reg_index], new_register_vals[reg_index]);
+						}
 					}
-				}
-				
-				cpu_flags old_flags = old_register_vals[Register_flags];
-				cpu_flags new_flags = new_register_vals[Register_flags];
-				
-				if (old_flags != new_flags) {
-					printf("flags: ");
-					print_cpu_flags(old_flags);
-					printf("->");
-					print_cpu_flags(new_flags);
+					
+					cpu_flags old_flags = old_register_vals[Register_flags];
+					cpu_flags new_flags = new_register_vals[Register_flags];
+					
+					if (old_flags != new_flags) {
+						printf("flags: ");
+						print_cpu_flags(old_flags);
+						printf("->");
+						print_cpu_flags(new_flags);
+					}
 				}
 				
 				if (halt) break;
 			}
-			printf("\n");
+			
+			if (show) {
+				printf("\n");
+			}
 		} else {
 			fprintf(stderr, "Unrecognized instruction\n");
 			break;
@@ -598,6 +609,7 @@ int main(int argc, char **argv) {
 	char *file_name = "";
 	bool exec = 0;
 	bool dump = 0;
+	bool show = 0;
 	
 	if (ok) {
 		// NOTE(ema): This command-line parsing is really stupid and it only keeps the last string
@@ -613,6 +625,9 @@ int main(int argc, char **argv) {
 			}
 			
 			if (memcmp(argv[i], str_expand_pfirst("-show")) == 0) {
+				show = 1;
+			}
+			
 			if (argv[i][0] != '-') {
 				file_name = argv[i];
 			}
