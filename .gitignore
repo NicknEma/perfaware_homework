@@ -2,3 +2,5 @@
 *.pdb
 *.rdi
 listing_*
+shl
+shl.asm

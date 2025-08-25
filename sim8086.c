@@ -145,6 +145,7 @@ enum {
 	Aop_flag_writeback = 1 << 0,
 	Aop_flag_addish    = 1 << 1, // Can be considered an add for the purposes of computing the OF
 	Aop_flag_subbish   = 1 << 2, // Can be considered a sub for the purposes of computing the OF
+	Aop_flag_shift     = 1 << 3, // You get the idea
 } arithmetic_op_flags_enum;
 
 typedef struct arithmetic_op_info arithmetic_op_info;
@@ -163,6 +164,7 @@ static u16 nop_impl(u16 op1, u16 op2) { return 0; }
 static u16 mov_impl(u16 op1, u16 op2) { return op2; }
 static u16 add_impl(u16 op1, u16 op2) { return op1 + op2; }
 static u16 sub_impl(u16 op1, u16 op2) { return op1 - op2; }
+static u16 shl_impl(u16 op1, u16 op2) { return op1 << op2; }
 #pragma warning(pop)
 
 static arithmetic_op_info arithmetic_ops[] = {
@@ -171,6 +173,7 @@ static arithmetic_op_info arithmetic_ops[] = {
 	{Op_add,  1, 0, Aop_flag_writeback|Aop_flag_addish,  Flag_A|Flag_C|Flag_O|Flag_P|Flag_S|Flag_Z, add_impl},
 	{Op_sub,  1, 0, Aop_flag_writeback|Aop_flag_subbish, Flag_A|Flag_C|Flag_O|Flag_P|Flag_S|Flag_Z, sub_impl},
 	{Op_cmp,  1, 0,                    Aop_flag_subbish, Flag_A|Flag_C|Flag_O|Flag_P|Flag_S|Flag_Z, sub_impl},
+	{Op_shl,  1, 0, Aop_flag_writeback|Aop_flag_shift,                 Flag_O                     , shl_impl},
 };
 
 static arithmetic_op_info arithmetic_op_info_from_op(operation_type op) {
@@ -382,6 +385,13 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 					overflow = (~(dest_val ^ source_val) & (source_val ^ result) & sign_bit) != 0;
 				} else if (info.flags & Aop_flag_subbish) {
 					overflow = ((dest_val ^ source_val) & ~(source_val ^ result) & sign_bit) != 0;
+				} else if (info.flags & Aop_flag_shift) {
+					// TODO(ema): This is wrong! It correctly *clears* the value when it should,
+					// but it also *sets* it; according to the manual, shifts never set this flag,
+					// they can only clear it.
+					// The system I have in place right now is not powerful enough to express this
+					// idea.
+					overflow = (dest_val & sign_bit) != (result & sign_bit);
 				}
 				if (overflow) {
 					registers[Register_flags] |= Flag_O;
