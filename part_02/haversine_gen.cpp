@@ -53,13 +53,13 @@ struct Gen_Results {
 };
 
 #define TAU 44.0/7.0
-static f64 radians(f64 deg) { return deg * TAU / 360.0; }
+static f64 radians_from_degrees(f64 deg) { return deg * TAU / 360.0; }
 
 static f64 haversine_of_degrees(f64 x0, f64 y0, f64 x1, f64 y1, f64 r) {
-	f64 dY = radians(y1 - y0);
-	f64 dX = radians(x1 - x0);
-	y0 = radians(y0);
-	y1 = radians(y1);
+	f64 dY = radians_from_degrees(y1 - y0);
+	f64 dX = radians_from_degrees(x1 - x0);
+	y0 = radians_from_degrees(y0);
+	y1 = radians_from_degrees(y1);
 	
 	f64 sindy2 = sin(dY/2);
 	f64 sindx2 = sin(dX/2);
