@@ -168,6 +168,8 @@ static Pair generate_pair(Random_Method_State *state) {
 }
 
 static Gen_Results generate_files(Args args) {
+	Gen_Results results = {};
+	
 	srand(args.seed);
 	
 	Random_Method_State method_state = {};
@@ -178,22 +180,39 @@ static Gen_Results generate_files(Args args) {
 	
 	f64 sum = 0;
 	
-	for (int pair_index = 0; pair_index < args.pair_count; pair_index += 1) {
-		Pair pair = generate_pair(&method_state);
+	FILE *json = fopen("data_N_json.json", "wb");
+	if (json) {
+		fprintf(json, "{\"pairs\":[\n");
 		
-		sum += haversine_of_degrees(pair.x0, pair.y0, pair.x1, pair.y1, EARTH_RADIUS);
+		for (int pair_index = 0; pair_index < args.pair_count; pair_index += 1) {
+			Pair pair = generate_pair(&method_state);
+			
+			sum += haversine_of_degrees(pair.x0, pair.y0, pair.x1, pair.y1, EARTH_RADIUS);
+			
+			*(Pair *) (buffer + sizeof(Pair) * pair_index) = pair;
+			
+			fprintf(json, "\t{\"x0\":%f,\"y0\":%f,\"x1\":%f,\"y1\":%f}", pair.x0, pair.y0, pair.x1, pair.y1);
+			if (pair_index != args.pair_count - 1) {
+				fprintf(json, ",");
+			}
+			fprintf(json, "\n");
+		}
 		
-		*(Pair *) (buffer + sizeof(Pair) * pair_index) = pair;
-	}
-	
-	f64 avg = sum / (f64) args.pair_count;
-	
-	*(f64 *) (buffer + sizeof(Pair) * args.pair_count) = avg;
-	
-	FILE *data = fopen("data_N_haveranswer.f64", "wb");
-	if (data) {
-		fwrite(buffer, 1, buffer_cap, data);
-		fclose(data);
+		fprintf(json, "]}");
+		
+		f64 avg = sum / (f64) args.pair_count;
+		
+		*(f64 *) (buffer + sizeof(Pair) * args.pair_count) = avg;
+		
+		FILE *data = fopen("data_N_haveranswer.f64", "wb");
+		if (data) {
+			fwrite(buffer, 1, buffer_cap, data);
+			fclose(data);
+		}
+		
+		fclose(json);
+		
+		results.agv = avg;
 	}
 	
 	Gen_Results results = {};
