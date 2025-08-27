@@ -30,6 +30,8 @@ typedef   double f64;
 #define sl_expand_pfirst(s) (s), sizeof(s)
 #define sl_expand_sfirst(s) sizeof(s), (s)
 #define sl(s) make_string(sizeof(s)-1, (u8 *) (s))
+#define slct(s) (string){sizeof(s)-1, (u8 *) (s)}
+#define slc(s) {sizeof(s)-1, (u8 *) (s)}
 
 #define ss_expand_pfirst(s) (s).data, (s).len
 #define ss_expand_sfirst(s) (s).len, (s).data
@@ -140,6 +142,7 @@ union Pair {
 	struct { f64 x0, y0, x1, y1; };
 	struct { Point p0, p1; };
 	Point points[2];
+	f64 v[4];
 };
 
 #define TAU 44.0/7.0
@@ -234,11 +237,11 @@ static Json_Token make_json_token(Json_Parse_Ctx *parser) {
 			token.str = {opl - start, input.data + start};
 		}
 		
-		if (token.kind == Json_Token_None && isdigit(input.data[index])) {
+		if (token.kind == Json_Token_None && (isdigit(input.data[index]) || input.data[index] == '-')) {
 			i32 start = index;
 			i32 opl = index;
 			
-			for (; index < input.len && (isdigit(input.data[index]) || input.data[index] == '.'); index += 1) {
+			for (; index < input.len && (isdigit(input.data[index]) || input.data[index] == '.' || input.data[index] == '-'); index += 1) {
 				opl += 1;
 			}
 			
@@ -286,9 +289,23 @@ static Json_Token make_json_token(Json_Parse_Ctx *parser) {
 	return token;
 }
 
+static void save_json_token(Json_Parse_Ctx *parser) {
+	parser->save_index = parser->input_index - (i32) parser->curr_token.str.len;
+}
+
+static void restore_json_token(Json_Parse_Ctx *parser) {
+	parser->input_index = parser->save_index;
+	consume_json_token(parser);
+}
+
 //
 // Assuming Json parser
 //
+
+static f64 parse_f64(string str, bool *ok) {
+	assert(!"unimplemented"); (void) str, ok;
+	return 0;
+}
 
 struct Parsed_Pairs {
 	Pair *pairs;
@@ -347,17 +364,119 @@ static Parsed_Pairs parse_json_pairs(char *name) {
 		}
 	}
 	
-	//
-	// Loop here...
-	//
-	
-	// ]
 	if (result.ok) {
-		token = peek_json_token(&parser);
-		if (token.kind == Json_Token_Rbrack) {
+		static string fields[] = {
+			slc("x0"), slc("y0"), slc("x1"), slc("y1"),
+		};
+		
+		save_json_token(&parser);
+		
+		for (;result.ok;) {
+			// {
+			token = peek_json_token(&parser);
+			if (token.kind == Json_Token_Lbrace) {
+				consume_json_token(&parser);
+			} else {
+				result.ok = false;
+			}
+			
+			for (int field_index = 0; field_index < array_count(fields); field_index += 1) {
+				
+				// field name
+				if (result.ok) {
+					token = peek_json_token(&parser);
+					if (token.kind == Json_Token_String) {
+						string contents = {token.str.len - 2, token.str.data + 1};
+						if (string_equals(contents, fields[field_index])) {
+							consume_json_token(&parser);
+						} else {
+							result.ok = false;
+						}
+					} else {
+						result.ok = false;
+					}
+				}
+				
+				// :
+				token = peek_json_token(&parser);
+				if (token.kind == Json_Token_Colon) {
+					consume_json_token(&parser);
+				} else {
+					result.ok = false;
+				}
+				
+				// field value
+				token = peek_json_token(&parser);
+				if (token.kind == Json_Token_Number) {
+					consume_json_token(&parser);
+				} else {
+					result.ok = false;
+				}
+				
+				if (field_index != array_count(fields) - 1) {
+					// ,
+					token = peek_json_token(&parser);
+					if (token.kind == Json_Token_Comma) {
+						consume_json_token(&parser);
+					} else {
+						result.ok = false;
+					}
+				}
+			}
+			
+			// }
+			token = peek_json_token(&parser);
+			if (token.kind == Json_Token_Rbrace) {
+				if (result.pair_count == 999999)
+				{int xx = 0; (void) xx;}
+				consume_json_token(&parser);
+			} else {
+				result.ok = false;
+			}
+			
+			result.pair_count += 1;
+			
+			if (result.ok) {
+				// , or ]
+				token = peek_json_token(&parser);
+				if (token.kind == Json_Token_Comma) {
+					consume_json_token(&parser);
+				} else if (token.kind == Json_Token_Rbrack) {
+					break;
+				} else {
+					result.ok = false;
+				}
+			}
+		}
+		
+		if (result.ok) {
+			result.pairs = (Pair *) malloc(sizeof(Pair) * result.pair_count);
+		}
+		
+		restore_json_token(&parser);
+		
+		for (int pair_index = 0; pair_index < result.pair_count && result.ok; pair_index += 1) {
+			for (int field_index = 0; field_index < array_count(fields); field_index += 1) {
+				// {
+				consume_json_token(&parser);
+				
+				// field name
+				consume_json_token(&parser);
+				
+				// :
+				consume_json_token(&parser);
+				
+				// field value
+				token = peek_json_token(&parser);
+				consume_json_token(&parser);
+				result.pairs[pair_index].v[field_index] = parse_f64(token.str, &result.ok);
+				
+				// ,
+				consume_json_token(&parser);
+			}
+			
+			// , or ]
 			consume_json_token(&parser);
-		} else {
-			result.ok = false;
 		}
 	}
 	
