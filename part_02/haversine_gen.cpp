@@ -29,6 +29,61 @@ typedef   double f64;
 #define str_expand_pfirst(s) (s), sizeof(s)
 #define str_expand_sfirst(s) sizeof(s), (s)
 
+struct Temp_Storage {
+	u8 *ptr;
+	i64 cap;
+	i64 pos;
+};
+
+static Temp_Storage temp_storage = {};
+
+static void init_temp_storage() {
+	temp_storage.cap = 1024*1024*1024;
+	temp_storage.ptr = (u8 *) calloc(1, temp_storage.cap);
+	temp_storage.pos = 0;
+}
+
+static void free_temp_storage() {
+	temp_storage.pos = 0;
+}
+
+static void *temp_push_nozero(i64 size) {
+	void *result = 0;
+	
+	if (temp_storage.pos + size < temp_storage.cap) {
+		result = temp_storage.ptr + temp_storage.pos;
+		temp_storage.pos += size;
+	}
+	
+	assert(result);
+	
+	return result;
+}
+
+static void *temp_push(i64 size) {
+	void *result = temp_push_nozero(size);
+	memset(result, 0, size);
+	
+	return result;
+}
+
+static char *tsprintf(char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	
+	size_t needed = vsnprintf(0, 0, fmt, args) + 1;
+	char  *buffer = (char *) temp_push(sizeof(char) * (i64) needed);
+	
+	vsnprintf(buffer, needed, fmt, args);
+	
+	va_end(args);
+	return buffer;
+}
+
+//
+// Haversine computation
+//
+
 union Point {
 	struct { f64 x, y; };
 	f64 v[2];
@@ -176,6 +231,8 @@ struct Gen_Results {
 static Gen_Results generate_files(Args args) {
 	Gen_Results results = {};
 	
+	free_temp_storage();
+	
 	srand(args.seed);
 	
 	Random_Method_State method_state = {};
@@ -186,7 +243,7 @@ static Gen_Results generate_files(Args args) {
 	
 	f64 sum = 0;
 	
-	FILE *json = fopen("data_N_json.json", "wb");
+	FILE *json = fopen(tsprintf("data_%i_json.json", args.pair_count), "wb");
 	if (json) {
 		fprintf(json, "{\"pairs\":[\n");
 		
@@ -210,7 +267,7 @@ static Gen_Results generate_files(Args args) {
 		
 		*(f64 *) (buffer + sizeof(Pair) * args.pair_count) = avg;
 		
-		FILE *data = fopen("data_N_haveranswer.f64", "wb");
+		FILE *data = fopen(tsprintf("data_%i_haveranswer.f64", args.pair_count), "wb");
 		if (data) {
 			fwrite(buffer, 1, buffer_cap, data);
 			fclose(data);
@@ -260,6 +317,8 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Usage:\n\t%s uniform/cluster [seed] [number of coordinate pairs to generate]\n", argv[0]);
 		ok = false;
 	} else {
+		init_temp_storage();
+		
 		Gen_Results results = generate_files(args);
 		switch (args.method) {
 			case Random_Uniform: {
