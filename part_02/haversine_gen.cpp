@@ -221,6 +221,8 @@ static Gen_Results generate_files(Args args) {
 		results.agv = avg;
 	}
 	
+	free(buffer);
+	
 	return results;
 }
 
