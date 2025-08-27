@@ -303,7 +303,7 @@ static void restore_json_token(Json_Parse_Ctx *parser) {
 //
 
 static f64 parse_f64(string str, bool *ok) {
-	assert(!"unimplemented"); (void) str, ok;
+	(void) str, ok; // TODO(ema): unimplemented!
 	return 0;
 }
 
@@ -381,7 +381,6 @@ static Parsed_Pairs parse_json_pairs(char *name) {
 			}
 			
 			for (int field_index = 0; field_index < array_count(fields); field_index += 1) {
-				
 				// field name
 				if (result.ok) {
 					token = peek_json_token(&parser);
@@ -456,10 +455,10 @@ static Parsed_Pairs parse_json_pairs(char *name) {
 		restore_json_token(&parser);
 		
 		for (int pair_index = 0; pair_index < result.pair_count && result.ok; pair_index += 1) {
+			// {
+			consume_json_token(&parser);
+			
 			for (int field_index = 0; field_index < array_count(fields); field_index += 1) {
-				// {
-				consume_json_token(&parser);
-				
 				// field name
 				consume_json_token(&parser);
 				
@@ -471,9 +470,13 @@ static Parsed_Pairs parse_json_pairs(char *name) {
 				consume_json_token(&parser);
 				result.pairs[pair_index].v[field_index] = parse_f64(token.str, &result.ok);
 				
-				// ,
-				consume_json_token(&parser);
+				if (field_index != array_count(fields) - 1) {
+					// ,
+					consume_json_token(&parser);
+				}
 			}
+			// }
+			consume_json_token(&parser);
 			
 			// , or ]
 			consume_json_token(&parser);
