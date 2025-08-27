@@ -222,9 +222,13 @@ static Json_Token make_json_token(Json_Parse_Ctx *parser) {
 			i32 start = index;
 			i32 opl = index;
 			
+			index += 1;
+			opl += 1;
 			for (; index < input.len && input.data[index] != '"'; index += 1) {
 				opl += 1;
 			}
+			index += 1;
+			opl += 1;
 			
 			token.kind = Json_Token_String;
 			token.str = {opl - start, input.data + start};
@@ -302,7 +306,7 @@ static Parsed_Pairs parse_json_pairs(char *name) {
 	
 	// {
 	Json_Token token = peek_json_token(&parser);
-	if (token.kind == Json_Token_String) {
+	if (token.kind == Json_Token_Lbrace) {
 		consume_json_token(&parser);
 	} else {
 		result.ok = false;
