@@ -7,6 +7,10 @@
 #include <stdio.h>
 #include <math.h>
 
+//
+// Base
+//
+
 typedef  uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -36,22 +40,6 @@ union Pair {
 	Point points[2];
 };
 
-enum Random_Method : u32 {
-	Random_Uniform,
-	Random_Cluster,
-	Random_COUNT,
-};
-
-struct Args {
-	Random_Method method;
-	i32 seed;
-	i32 pair_count;
-};
-
-struct Gen_Results {
-	f64 agv;
-};
-
 #define TAU 44.0/7.0
 static f64 radians_from_degrees(f64 deg) { return deg * TAU / 360.0; }
 
@@ -70,15 +58,15 @@ static f64 haversine_of_degrees(f64 x0, f64 y0, f64 x1, f64 y1, f64 r) {
 	return result;
 }
 
-static f64 rand_f64() {
-	return ((f64) rand() / (f64) RAND_MAX);
-}
+//
+// Input generation
+//
 
-static f64 rand_f64_range(f64 min, f64 max) {
-	return ((f64) rand() / (f64) RAND_MAX) * (max - min) + min;
-}
-
-// 6 clusters
+enum Random_Method : u32 {
+	Random_Uniform,
+	Random_Cluster,
+	Random_COUNT,
+};
 
 #define CLUSTER_COUNT  6
 #define CLUSTER_RADIUS 10.0
@@ -116,6 +104,14 @@ static Point normalize(Point p) {
 	p.x = fmod(p.x, 180.0);
 	p.y = fmod(p.y, 90.0);
 	return p;
+}
+
+static f64 rand_f64() {
+	return ((f64) rand() / (f64) RAND_MAX);
+}
+
+static f64 rand_f64_range(f64 min, f64 max) {
+	return ((f64) rand() / (f64) RAND_MAX) * (max - min) + min;
 }
 
 static Pair generate_pair(Random_Method_State *state) {
@@ -167,6 +163,16 @@ static Pair generate_pair(Random_Method_State *state) {
 	return pair;
 }
 
+struct Args {
+	Random_Method method;
+	i32 seed;
+	i32 pair_count;
+};
+
+struct Gen_Results {
+	f64 agv;
+};
+
 static Gen_Results generate_files(Args args) {
 	Gen_Results results = {};
 	
@@ -214,9 +220,6 @@ static Gen_Results generate_files(Args args) {
 		
 		results.agv = avg;
 	}
-	
-	Gen_Results results = {};
-	results.agv = avg;
 	
 	return results;
 }
