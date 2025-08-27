@@ -106,7 +106,23 @@ static char *tsprintf(char *fmt, ...) {
 static string read_entire_file(char *name) {
 	string result = {};
 	
-	assert(!"unimplemented"); (void) name;
+	FILE *file = fopen(name, "rb");
+	if (file) {
+		fseek(file, 0, SEEK_END);
+		u32 file_size = ftell(file);
+		fseek(file, 0, SEEK_SET);
+		
+		result.data = (u8 *) malloc(file_size);
+		if (fread(result.data, 1, file_size, file) == file_size) {
+			result.len = file_size;
+		} else {
+			fprintf(stderr, "Error reading file '%s'\n", name);
+		}
+		
+		fclose(file);
+	} else {
+		fprintf(stderr, "Error opening file '%s'\n", name);
+	}
 	
 	return result;
 }
