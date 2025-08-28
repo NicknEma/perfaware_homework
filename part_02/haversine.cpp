@@ -179,12 +179,12 @@ struct Parsed_Pairs {
 	bool ok;
 };
 
-static Parsed_Pairs parse_json_pairs(char *name) {
+static Parsed_Pairs parse_json_pairs(string input) {
 	Parsed_Pairs result = {};
 	result.ok = true;
 	
 	Json_Parse_Ctx parser = {};
-	parser.input = read_entire_file(name);
+	parser.input = input; 
 	
 	// {
 	Json_Token token = peek_json_token(&parser);
@@ -372,25 +372,13 @@ static Parsed_Pairs parse_json_pairs(char *name) {
 int main(int argc, char **argv) {
 	bool ok = true;
 	
-	char *json_name = 0;
-	bool show_usage = false;
-	
 	if (argc > 1) {
-		json_name = argv[1];
-	} else {
-		show_usage = true;
-	}
-	
-	if (show_usage) {
-		fprintf(stderr, "Usage:\n\t%s [haversine_input.json]\n", argv[0]);
-		ok = false;
-	} else {
 		init_temp_storage();
 		
-		auto parsed = parse_json_pairs(json_name);
+		string json_input = read_entire_file(argv[1]);
+		
+		auto parsed = parse_json_pairs(json_input);
 		if (parsed.ok) {
-			printf("Pair count: %i\n", parsed.pair_count);
-			
 			f64 sum = 0;
 			
 			for (int pair_index = 0; pair_index < parsed.pair_count; pair_index += 1) {
@@ -400,10 +388,15 @@ int main(int argc, char **argv) {
 			
 			f64 avg = sum / (f64) parsed.pair_count;
 			
+			printf("Input size: %lli\n", json_input.len);
+			printf("Pair count: %i\n", parsed.pair_count);
 			printf("Haversine avg: %f\n", avg);
 		} else {
 			ok = false;
 		}
+	} else {
+		fprintf(stderr, "Usage:\n\t%s [haversine_input.json]\n", argv[0]);
+		ok = false;
 	}
 	
 	return !ok;
