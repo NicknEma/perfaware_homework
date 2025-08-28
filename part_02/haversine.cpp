@@ -148,6 +148,8 @@ union Pair {
 #define TAU 44.0/7.0
 static f64 radians_from_degrees(f64 deg) { return deg * TAU / 360.0; }
 
+#define EARTH_RADIUS 6372.8
+
 static f64 haversine_of_degrees(f64 x0, f64 y0, f64 x1, f64 y1, f64 r) {
 	f64 dY = radians_from_degrees(y1 - y0);
 	f64 dX = radians_from_degrees(x1 - x0);
@@ -303,8 +305,22 @@ static void restore_json_token(Json_Parse_Ctx *parser) {
 //
 
 static f64 parse_f64(string str, bool *ok) {
-	(void) str, ok; // TODO(ema): unimplemented!
-	return 0;
+	char *cstr = (char *) temp_push(str.len + 1);
+	memcpy(cstr, str.data, str.len);
+	cstr[str.len] = '\0';
+	
+	char *endptr = 0;
+	
+	errno = 0;
+	f64 val = strtod(cstr, &endptr);
+	
+	if (errno != 0 || endptr[0] != '\0') {
+		if (ok) {
+			*ok = false;
+		}
+	}
+	
+	return val;
 }
 
 struct Parsed_Pairs {
@@ -524,7 +540,18 @@ int main(int argc, char **argv) {
 		
 		auto parsed = parse_json_pairs(json_name);
 		if (parsed.ok) {
+			printf("Pair count: %i\n", parsed.pair_count);
 			
+			f64 sum = 0;
+			
+			for (int pair_index = 0; pair_index < parsed.pair_count; pair_index += 1) {
+				Pair pair = parsed.pairs[pair_index];
+				sum += haversine_of_degrees(pair.x0, pair.y0, pair.x1, pair.y1, EARTH_RADIUS);
+			}
+			
+			f64 avg = sum / (f64) parsed.pair_count;
+			
+			printf("Haversine avg: %f\n", avg);
 		} else {
 			ok = false;
 		}
