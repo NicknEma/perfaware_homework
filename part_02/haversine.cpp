@@ -1,4 +1,5 @@
 #include "haversine_base.cpp"
+#include "haversine_timing.cpp"
 
 //
 // Haversine computation
