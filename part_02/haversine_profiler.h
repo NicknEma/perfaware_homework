@@ -3,26 +3,39 @@
 
 #define Prof_Function() Prof_Block(__FUNCTION__)
 #define Prof_Block(name) \
-Profiler_Anchor prof_anchor##__FILE__##__LINE__(name, __FILE__, __LINE__, __COUNTER__)
+Profiler_Block prof_anchor##__FILE__##__LINE__(name, __FILE__, __LINE__, __COUNTER__ + 1)
 
 struct Profiler_Record {
 	char *name, *file;
 	u32 line;
 	u32 hit_count;
-	u64 total_time;
+	u64 cpu_elapsed_exclusive;
+	u64 cpu_elapsed_inclusive;
 };
 
-struct Profiler_Anchor {
+struct Profiler_Block {
 	u64 cpu_start;
-	Profiler_Record *record;
+	u64 cpu_elapsed_inclusive;
+	u32 index;
+	u32 parent_index;
 	
-	Profiler_Anchor(char *name, char *file, u32 line, u32 index);
-	~Profiler_Anchor();
+	char *name, *file;
+	u32   line;
+	
+	Profiler_Block(char *name, char *file, u32 line, u32 index);
+	~Profiler_Block();
 };
 
-static Profiler_Record profiler_records[1024];
-static u32 profiler_record_count;
+struct Profiler {
+	Profiler_Record records[1024];
+	u64 cpu_start;
+	u64 cpu_end;
+};
 
-void print_profiler_records(u64 cpu_total);
+static Profiler profiler;
+static u32 current_profiler_block_index;
+
+void begin_profile();
+void end_and_print_profile();
 
 #endif

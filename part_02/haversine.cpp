@@ -382,7 +382,7 @@ static Parsed_Pairs parse_json_pairs(string input) {
 //
 
 int main(int argc, char **argv) {
-	u64 cpu_start = read_cpu_timer();
+	begin_profile();
 	
 	bool ok = true;
 	
@@ -418,7 +418,7 @@ int main(int argc, char **argv) {
 				printf("Haversine avg: %f\n", avg);
 			}
 			
-			print_profiler_records(read_cpu_timer() - cpu_start);
+			end_and_print_profile();
 		} else {
 			ok = false;
 		}
@@ -430,4 +430,4 @@ int main(int argc, char **argv) {
 	return !ok;
 }
 
-static_assert(__COUNTER__ < array_count(profiler_records));
+static_assert(__COUNTER__ < array_count(Profiler::records));
