@@ -1,6 +1,12 @@
+#include "haversine_base.h"
+#include "haversine_timing.h"
+#include "haversine_formula.h"
+#include "haversine_profiler.h"
+
 #include "haversine_base.cpp"
 #include "haversine_timing.cpp"
 #include "haversine_formula.cpp"
+#include "haversine_profiler.cpp"
 
 union Point {
 	struct { f64 x, y; };

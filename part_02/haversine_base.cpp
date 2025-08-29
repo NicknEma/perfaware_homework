@@ -1,45 +1,3 @@
-#include <assert.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <memory.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <math.h>
-
-//
-// Base
-//
-
-typedef  uint8_t  u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-
-typedef   int8_t  i8;
-typedef  int16_t i16;
-typedef  int32_t i32;
-typedef  int64_t i64;
-
-typedef    float f32;
-typedef   double f64;
-
-#define array_count(a) (sizeof(a)/sizeof((a)[0]))
-
-#define sl_expand_pfirst(s) (s), sizeof(s)
-#define sl_expand_sfirst(s) sizeof(s), (s)
-#define sl(s) make_string(sizeof(s)-1, (u8 *) (s))
-#define slct(s) (string){sizeof(s)-1, (u8 *) (s)}
-#define slc(s) {sizeof(s)-1, (u8 *) (s)}
-
-#define ss_expand_pfirst(s) (s).data, (s).len
-#define ss_expand_sfirst(s) (s).len, (s).data
-
-struct string {
-	i64 len;
-	u8 *data;
-};
 
 static string make_string(i64 len, u8 *data) {
 	string result = {len, data};
@@ -54,13 +12,7 @@ static bool string_equals(string a, string b) {
 	return result;
 }
 
-struct Temp_Storage {
-	u8 *ptr;
-	i64 cap;
-	i64 pos;
-};
 
-static Temp_Storage temp_storage = {};
 
 static void init_temp_storage() {
 	temp_storage.cap = 1024*1024*1024;
@@ -92,6 +44,8 @@ static void *temp_push(i64 size) {
 	return result;
 }
 
+
+
 static char *tsprintf(char *fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
@@ -105,7 +59,11 @@ static char *tsprintf(char *fmt, ...) {
 	return buffer;
 }
 
+
+
 static string read_entire_file(char *name) {
+	Prof_Function();
+	
 	string result = {};
 	
 	FILE *file = fopen(name, "rb");

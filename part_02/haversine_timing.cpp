@@ -1,3 +1,4 @@
+
 #if _WIN32
 
 #include <intrin.h>
@@ -38,7 +39,7 @@ static u64 read_cpu_timer() {
 	return __rdtsc();
 }
 
-static u64 estimate_cpu_timer_frequency(u64 milliseconds_to_wait = 1000) {
+static u64 estimate_cpu_timer_frequency(u64 milliseconds_to_wait) {
 	u64 os_freq = get_os_timer_frequency();
 	
 	u64 cpu_start = read_cpu_timer();

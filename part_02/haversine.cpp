@@ -1,3 +1,8 @@
+#include "haversine_base.h"
+#include "haversine_timing.h"
+#include "haversine_formula.h"
+#include "haversine_profiler.h"
+
 #include "haversine_base.cpp"
 #include "haversine_timing.cpp"
 #include "haversine_profiler.cpp"
@@ -63,6 +68,8 @@ static void consume_json_token(Json_Parse_Ctx *parser) {
 }
 
 static Json_Token make_json_token(Json_Parse_Ctx *parser) {
+	Prof_Function();
+	
 	Json_Token token = {};
 	
 	string input = parser->input;
@@ -155,6 +162,8 @@ static void restore_json_token(Json_Parse_Ctx *parser) {
 //
 
 static f64 parse_f64(string str, bool *ok) {
+	Prof_Function();
+	
 	char *cstr = (char *) temp_push(str.len + 1);
 	memcpy(cstr, str.data, str.len);
 	cstr[str.len] = '\0';
