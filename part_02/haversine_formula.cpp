@@ -1,4 +1,3 @@
-#define EARTH_RADIUS 6372.8
 
 static f64 radians_from_degrees(f64 deg) {
 	return deg * 0.01745329251994329577;
