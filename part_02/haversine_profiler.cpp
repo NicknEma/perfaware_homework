@@ -1,6 +1,4 @@
 
-	Profiler_Anchor::Profiler_Anchor() {}
-
 Profiler_Anchor::Profiler_Anchor(char *name, char *file, u32 line, u32 index) {
 	this->record = &profiler_records[index];
 	this->record->name = name;

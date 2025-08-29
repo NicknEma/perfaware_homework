@@ -16,7 +16,6 @@ struct Profiler_Anchor {
 	u64 cpu_start;
 	Profiler_Record *record;
 	
-	Profiler_Anchor();
 	Profiler_Anchor(char *name, char *file, u32 line, u32 index);
 	~Profiler_Anchor();
 };
