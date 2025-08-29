@@ -49,7 +49,7 @@ static void print_profiler_records(u64 cpu_total) {
 				   record->hit_count, cpu_elapsed_self, percent);
 			if (cpu_elapsed_self != record->cpu_elapsed_inclusive) {
 				f64 percent_with_children = (f64)(record->cpu_elapsed_inclusive) * 100.0 / (f64)cpu_total;
-				printf(", %.4f%% w/childred", percent_with_children);
+				printf(", %.4f%% w/children", percent_with_children);
 			}
 			printf(")\n");
 		}
