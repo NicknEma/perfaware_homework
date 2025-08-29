@@ -164,8 +164,6 @@ static void restore_json_token(Json_Parse_Ctx *parser) {
 //
 
 static f64 parse_f64(string str, bool *ok) {
-	Prof_Function();
-	
 	char *cstr = (char *) temp_push(str.len + 1);
 	memcpy(cstr, str.data, str.len);
 	cstr[str.len] = '\0';
@@ -250,81 +248,87 @@ static Parsed_Pairs parse_json_pairs(string input) {
 		
 		save_json_token(&parser);
 		
-		for (;result.ok;) {
-			// {
-			token = peek_json_token(&parser);
-			if (token.kind == Json_Token_Lbrace) {
-				consume_json_token(&parser);
-			} else {
-				result.ok = false;
-			}
+		{
+			Prof_Block("Json first pass");
 			
-			for (int field_index = 0; field_index < array_count(fields); field_index += 1) {
-				// field name
-				if (result.ok) {
-					token = peek_json_token(&parser);
-					if (token.kind == Json_Token_String) {
-						string contents = {token.str.len - 2, token.str.data + 1};
-						if (string_equals(contents, fields[field_index])) {
-							consume_json_token(&parser);
+			for (;result.ok;) {
+				// {
+				token = peek_json_token(&parser);
+				if (token.kind == Json_Token_Lbrace) {
+					consume_json_token(&parser);
+				} else {
+					result.ok = false;
+				}
+				
+				for (int field_index = 0; field_index < array_count(fields); field_index += 1) {
+					// field name
+					if (result.ok) {
+						token = peek_json_token(&parser);
+						if (token.kind == Json_Token_String) {
+							string contents = {token.str.len - 2, token.str.data + 1};
+							if (string_equals(contents, fields[field_index])) {
+								consume_json_token(&parser);
+							} else {
+								result.ok = false;
+							}
 						} else {
 							result.ok = false;
 						}
-					} else {
-						result.ok = false;
 					}
-				}
-				
-				// :
-				token = peek_json_token(&parser);
-				if (token.kind == Json_Token_Colon) {
-					consume_json_token(&parser);
-				} else {
-					result.ok = false;
-				}
-				
-				// field value
-				token = peek_json_token(&parser);
-				if (token.kind == Json_Token_Number) {
-					consume_json_token(&parser);
-				} else {
-					result.ok = false;
-				}
-				
-				if (field_index != array_count(fields) - 1) {
-					// ,
+					
+					// :
 					token = peek_json_token(&parser);
-					if (token.kind == Json_Token_Comma) {
+					if (token.kind == Json_Token_Colon) {
 						consume_json_token(&parser);
 					} else {
 						result.ok = false;
 					}
+					
+					// field value
+					token = peek_json_token(&parser);
+					if (token.kind == Json_Token_Number) {
+						consume_json_token(&parser);
+					} else {
+						result.ok = false;
+					}
+					
+					if (field_index != array_count(fields) - 1) {
+						// ,
+						token = peek_json_token(&parser);
+						if (token.kind == Json_Token_Comma) {
+							consume_json_token(&parser);
+						} else {
+							result.ok = false;
+						}
+					}
 				}
-			}
-			
-			// }
-			token = peek_json_token(&parser);
-			if (token.kind == Json_Token_Rbrace) {
-				if (result.pair_count == 999999)
-				{int xx = 0; (void) xx;}
-				consume_json_token(&parser);
-			} else {
-				result.ok = false;
-			}
-			
-			result.pair_count += 1;
-			
-			if (result.ok) {
-				// , or ]
+				
+				// }
 				token = peek_json_token(&parser);
-				if (token.kind == Json_Token_Comma) {
+				if (token.kind == Json_Token_Rbrace) {
+					if (result.pair_count == 999999)
+					{int xx = 0; (void) xx;}
 					consume_json_token(&parser);
-				} else if (token.kind == Json_Token_Rbrack) {
-					break;
 				} else {
 					result.ok = false;
 				}
+				
+				result.pair_count += 1;
+				
+				if (result.ok) {
+					// , or ]
+					token = peek_json_token(&parser);
+					if (token.kind == Json_Token_Comma) {
+						consume_json_token(&parser);
+					} else if (token.kind == Json_Token_Rbrack) {
+						break;
+					} else {
+						result.ok = false;
+					}
+				}
 			}
+			
+			// End of first profiled loop scope
 		}
 		
 		if (result.ok) {
@@ -333,32 +337,38 @@ static Parsed_Pairs parse_json_pairs(string input) {
 		
 		restore_json_token(&parser);
 		
-		for (int pair_index = 0; pair_index < result.pair_count && result.ok; pair_index += 1) {
-			// {
-			consume_json_token(&parser);
+		{
+			Prof_Block("Json second pass");
 			
-			for (int field_index = 0; field_index < array_count(fields); field_index += 1) {
-				// field name
+			for (int pair_index = 0; pair_index < result.pair_count && result.ok; pair_index += 1) {
+				// {
 				consume_json_token(&parser);
 				
-				// :
-				consume_json_token(&parser);
-				
-				// field value
-				token = peek_json_token(&parser);
-				consume_json_token(&parser);
-				result.pairs[pair_index].v[field_index] = parse_f64(token.str, &result.ok);
-				
-				if (field_index != array_count(fields) - 1) {
-					// ,
+				for (int field_index = 0; field_index < array_count(fields); field_index += 1) {
+					// field name
 					consume_json_token(&parser);
+					
+					// :
+					consume_json_token(&parser);
+					
+					// field value
+					token = peek_json_token(&parser);
+					consume_json_token(&parser);
+					result.pairs[pair_index].v[field_index] = parse_f64(token.str, &result.ok);
+					
+					if (field_index != array_count(fields) - 1) {
+						// ,
+						consume_json_token(&parser);
+					}
 				}
+				// }
+				consume_json_token(&parser);
+				
+				// , or ]
+				consume_json_token(&parser);
 			}
-			// }
-			consume_json_token(&parser);
 			
-			// , or ]
-			consume_json_token(&parser);
+			// End of second profiled loop scope
 		}
 	}
 	
