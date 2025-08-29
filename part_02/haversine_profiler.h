@@ -1,9 +1,12 @@
 #ifndef HAVERSINE_PROFILER_H
 #define HAVERSINE_PROFILER_H
 
+#define Name_Concat2(A, B) A##B
+#define Name_Concat(A, B) Name_Concat2(A, B)
+
 #define Prof_Function() Prof_Block(__FUNCTION__)
 #define Prof_Block(name) \
-Profiler_Block prof_anchor##__FILE__##__LINE__(name, __FILE__, __LINE__, __COUNTER__ + 1)
+Profiler_Block Name_Concat(prof_anchor, __LINE__)(name, __FILE__, __LINE__, __COUNTER__ + 1)
 
 struct Profiler_Record {
 	char *name, *file;
