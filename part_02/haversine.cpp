@@ -1,5 +1,6 @@
 #include "haversine_base.cpp"
 #include "haversine_timing.cpp"
+#include "haversine_profiler.cpp"
 #include "haversine_formula.cpp"
 
 union Point {
@@ -180,6 +181,8 @@ struct Parsed_Pairs {
 };
 
 static Parsed_Pairs parse_json_pairs(string input) {
+	Prof_Function();
+	
 	Parsed_Pairs result = {};
 	result.ok = true;
 	
@@ -369,7 +372,24 @@ static Parsed_Pairs parse_json_pairs(string input) {
 // Main program
 //
 
+void print_profiler_records(u64 cpu_total) {
+	u64 cpu_freq = estimate_cpu_timer_frequency(100);
+	if (cpu_freq != 0) {
+		printf("Total time: %.4fms (CPU freq %llu)\n", (f64)cpu_total/(f64)cpu_freq, cpu_freq);
+	}
+	
+	for (u32 i = 0; i < profiler_record_count; i += 1) {
+		Profiler_Record *record = &profiler_records[i];
+		if (record->hit_count != 0) {
+			printf("  %s (%s:%u): %llu (%.4f%%, %u hits)\n", record->name, record->file, record->line,
+				   record->total_time, (f64)(record->total_time) * 100.0 / (f64)cpu_total, record->hit_count);
+		}
+	}
+}
+
 int main(int argc, char **argv) {
+	u64 cpu_start = read_cpu_timer();
+	
 	bool ok = true;
 	
 	if (argc > 1) {
@@ -379,18 +399,32 @@ int main(int argc, char **argv) {
 		
 		auto parsed = parse_json_pairs(json_input);
 		if (parsed.ok) {
-			f64 sum = 0;
+			f64 avg = 0;
 			
-			for (int pair_index = 0; pair_index < parsed.pair_count; pair_index += 1) {
-				Pair pair = parsed.pairs[pair_index];
-				sum += haversine_of_degrees(pair.x0, pair.y0, pair.x1, pair.y1, EARTH_RADIUS);
+			{
+				Prof_Block("sum");
+				
+				f64 sum = 0;
+				
+				for (int pair_index = 0; pair_index < parsed.pair_count; pair_index += 1) {
+					Pair pair = parsed.pairs[pair_index];
+					sum += haversine_of_degrees(pair.x0, pair.y0, pair.x1, pair.y1, EARTH_RADIUS);
+				}
+				
+				if (parsed.pair_count != 0) {
+					avg = sum / (f64) parsed.pair_count;
+				}
 			}
 			
-			f64 avg = sum / (f64) parsed.pair_count;
+			{
+				Prof_Block("final output");
+				
+				printf("Input size: %lli\n", json_input.len);
+				printf("Pair count: %i\n", parsed.pair_count);
+				printf("Haversine avg: %f\n", avg);
+			}
 			
-			printf("Input size: %lli\n", json_input.len);
-			printf("Pair count: %i\n", parsed.pair_count);
-			printf("Haversine avg: %f\n", avg);
+			print_profiler_records(read_cpu_timer() - cpu_start);
 		} else {
 			ok = false;
 		}
@@ -401,3 +435,5 @@ int main(int argc, char **argv) {
 	
 	return !ok;
 }
+
+static_assert(__COUNTER__ < array_count(profiler_records));
