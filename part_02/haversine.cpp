@@ -1,6 +1,8 @@
 #include "haversine_base.h"
 #include "haversine_timing.h"
 #include "haversine_formula.h"
+
+#define HAVERSINE_PROFILER 1
 #include "haversine_profiler.h"
 
 #include "haversine_base.cpp"
@@ -430,4 +432,4 @@ int main(int argc, char **argv) {
 	return !ok;
 }
 
-static_assert(__COUNTER__ < array_count(Profiler::records));
+TU_End_Prof_Static_Assert();

@@ -1,4 +1,6 @@
 
+#if HAVERSINE_PROFILER
+
 Profiler_Block::Profiler_Block(char *name, char *file, u32 line, u32 index) {
 	this->name = name;
 	this->file = file;
@@ -8,7 +10,7 @@ Profiler_Block::Profiler_Block(char *name, char *file, u32 line, u32 index) {
 	this->parent_index = current_profiler_block_index;
 	current_profiler_block_index = this->index; // "Now I'm the current block being profiled"
 	
-	Profiler_Record *record = &profiler.records[this->index];
+	Profiler_Record *record = &profiler_records[this->index];
 	this->cpu_elapsed_inclusive = record->cpu_elapsed_inclusive;
 	
 	// NOTE(ema): This is the last thing that happens in the constructor so that the other
@@ -24,10 +26,10 @@ Profiler_Block::~Profiler_Block() {
 	
 	current_profiler_block_index = this->parent_index; // "Now I'm not the current block being profiled anymore"
 	
-	Profiler_Record *parent = &profiler.records[this->parent_index];
+	Profiler_Record *parent = &profiler_records[this->parent_index];
 	parent->cpu_elapsed_exclusive -= elapsed;
 	
-	Profiler_Record *record = &profiler.records[this->index];
+	Profiler_Record *record = &profiler_records[this->index];
 	record->cpu_elapsed_inclusive = this->cpu_elapsed_inclusive + elapsed;
 	record->cpu_elapsed_exclusive += elapsed;
 	record->hit_count += 1;
@@ -37,21 +39,9 @@ Profiler_Block::~Profiler_Block() {
 	record->line = this->line;
 }
 
-void begin_profile() {
-	profiler.cpu_start = read_cpu_timer();
-}
-
-void end_and_print_profile() {
-	profiler.cpu_end = read_cpu_timer();
-	
-	u64 cpu_total = profiler.cpu_end - profiler.cpu_start;
-	u64 cpu_freq = estimate_cpu_timer_frequency(100);
-	if (cpu_freq != 0) {
-		printf("Total time: %.4fms (CPU freq %llu)\n", (f64)cpu_total/(f64)cpu_freq, cpu_freq);
-	}
-	
-	for (u32 i = 0; i < array_count(profiler.records); i += 1) {
-		Profiler_Record *record = &profiler.records[i];
+static void print_profiler_records(u64 cpu_total) {
+	for (u32 i = 0; i < array_count(profiler_records); i += 1) {
+		Profiler_Record *record = &profiler_records[i];
 		if (record->hit_count != 0) {
 			u64 cpu_elapsed_self = record->cpu_elapsed_exclusive;
 			f64 percent = (f64)(cpu_elapsed_self) * 100.0 / (f64)cpu_total;
@@ -64,4 +54,26 @@ void end_and_print_profile() {
 			printf(")\n");
 		}
 	}
+}
+
+#else
+
+#endif
+
+static void begin_profile() {
+	profiler.cpu_start = read_cpu_timer();
+}
+
+static void end_and_print_profile() {
+	profiler.cpu_end = read_cpu_timer();
+	
+	u64 cpu_total = profiler.cpu_end - profiler.cpu_start;
+	u64 cpu_freq = estimate_cpu_timer_frequency(100);
+	if (cpu_freq != 0) {
+		printf("Total time: %.4fms (CPU freq %llu)\n", (f64)cpu_total/(f64)cpu_freq, cpu_freq);
+	}
+	
+	printf("Profiler blocks: %s\n", HAVERSINE_PROFILER ? "on" : "off");
+	
+	print_profiler_records(cpu_total);
 }
