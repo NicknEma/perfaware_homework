@@ -24,4 +24,6 @@ struct Profiler_Anchor {
 static Profiler_Record profiler_records[1024];
 static u32 profiler_record_count;
 
+void print_profiler_records(u64 cpu_total);
+
 #endif
