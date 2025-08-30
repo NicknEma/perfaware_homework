@@ -11,7 +11,6 @@
 #include <ctype.h>
 #include <math.h>
 
-
 typedef  uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
@@ -24,6 +23,10 @@ typedef  int64_t i64;
 
 typedef    float f32;
 typedef   double f64;
+
+#define KILOBYTE (1024)
+#define MEGABYTE (1024 * KILOBYTE)
+#define GIGABYTE (1024 * MEGABYTE)
 
 #define array_count(a) (sizeof(a)/sizeof((a)[0]))
 
@@ -60,5 +63,6 @@ static void *temp_push(i64 size);
 static char *tsprintf(char *fmt, ...);
 
 static string read_entire_file(char *name);
+static u64 get_file_size(char *name);
 
 #endif

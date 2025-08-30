@@ -91,3 +91,23 @@ static string read_entire_file(char *name) {
 	
 	return result;
 }
+
+#include <sys/stat.h>
+
+#if _WIN32
+
+static u64 get_file_size(char *name) {
+	struct __stat64 info = {};
+	_stat64(name, &info);
+	return info.st_size;
+}
+
+#else
+
+static u64 get_file_size(char *name) {
+	struct stat info = {};
+	stat(name, &info);
+	return info.st_size;
+}
+
+#endif
