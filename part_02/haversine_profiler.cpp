@@ -1,7 +1,7 @@
 
 #if HAVERSINE_PROFILER
 
-Profiler_Block::Profiler_Block(char *name, char *file, u32 line, u32 index) {
+Profiler_Block::Profiler_Block(char *name, char *file, u32 line, u32 index, u64 byte_count) {
 	this->name = name;
 	this->file = file;
 	this->line = line;
@@ -12,6 +12,7 @@ Profiler_Block::Profiler_Block(char *name, char *file, u32 line, u32 index) {
 	
 	Profiler_Record *record = &profiler_records[this->index];
 	this->cpu_elapsed_inclusive = record->cpu_elapsed_inclusive;
+	record->processed_byte_count = byte_count;
 	
 	// NOTE(ema): This is the last thing that happens in the constructor so that the other
 	// bookkeeping work is not counted in the profile.
@@ -39,7 +40,7 @@ Profiler_Block::~Profiler_Block() {
 	record->line = this->line;
 }
 
-static void print_profiler_records(u64 cpu_total) {
+static void print_profiler_records(u64 cpu_total, u64 cpu_freq) {
 	for (u32 i = 0; i < array_count(profiler_records); i += 1) {
 		Profiler_Record *record = &profiler_records[i];
 		if (record->hit_count != 0) {
@@ -51,7 +52,21 @@ static void print_profiler_records(u64 cpu_total) {
 				f64 percent_with_children = (f64)(record->cpu_elapsed_inclusive) * 100.0 / (f64)cpu_total;
 				printf(", %.4f%% w/children", percent_with_children);
 			}
-			printf(")\n");
+			printf(")");
+			
+			if (record->processed_byte_count != 0) {
+				f64 megabyte = 1024.0 * 1024.0;
+				f64 gigabyte = 1024.0 * megabyte;
+				
+				f64 seconds_elapsed = (f64)record->cpu_elapsed_inclusive / (f64)cpu_freq;
+				f64 bytes_per_second = (f64)record->processed_byte_count / seconds_elapsed;
+				f64 megabytes_processed = (f64)record->processed_byte_count / megabyte;
+				f64 gigabytes_per_second = bytes_per_second / gigabyte;
+				
+				printf("  %.3fmb at %.2fgb/s", megabytes_processed, gigabytes_per_second);
+			}
+			
+			printf("\n");
 		}
 	}
 }
@@ -75,5 +90,5 @@ static void end_and_print_profile() {
 	
 	printf("Profiler blocks: %s\n", HAVERSINE_PROFILER ? "on" : "off");
 	
-	print_profiler_records(cpu_total);
+	print_profiler_records(cpu_total, cpu_freq);
 }

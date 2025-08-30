@@ -190,7 +190,7 @@ struct Parsed_Pairs {
 };
 
 static Parsed_Pairs parse_json_pairs(string input) {
-	Prof_Function();
+	Prof_Bandwidth(__FUNCTION__, input.len);
 	
 	Parsed_Pairs result = {};
 	result.ok = true;

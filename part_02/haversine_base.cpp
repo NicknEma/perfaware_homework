@@ -73,10 +73,15 @@ static string read_entire_file(char *name) {
 		fseek(file, 0, SEEK_SET);
 		
 		result.data = (u8 *) malloc(file_size);
-		if (fread(result.data, 1, file_size, file) == file_size) {
-			result.len = file_size;
-		} else {
-			fprintf(stderr, "Error reading file '%s'\n", name);
+		
+		{
+			Prof_Bandwidth("fread", file_size);
+			
+			if (fread(result.data, 1, file_size, file) == file_size) {
+				result.len = file_size;
+			} else {
+				fprintf(stderr, "Error reading file '%s'\n", name);
+			}
 		}
 		
 		fclose(file);

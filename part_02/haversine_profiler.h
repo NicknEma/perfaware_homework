@@ -10,9 +10,8 @@
 #define Name_Concat2(A, B) A##B
 #define Name_Concat(A, B) Name_Concat2(A, B)
 
-#define Prof_Function() Prof_Block(__FUNCTION__)
-#define Prof_Block(name) \
-Profiler_Block Name_Concat(prof_anchor, __LINE__)(name, __FILE__, __LINE__, __COUNTER__ + 1)
+#define Prof_Bandwidth(name, byte_count) \
+Profiler_Block Name_Concat(prof_anchor, __LINE__)(name, __FILE__, __LINE__, __COUNTER__ + 1, (u64) byte_count)
 
 #define TU_End_Prof_Static_Assert() static_assert(__COUNTER__ < array_count(profiler_records))
 
@@ -20,6 +19,7 @@ struct Profiler_Record {
 	char *name, *file;
 	u32 line;
 	u32 hit_count;
+	u64 processed_byte_count;
 	u64 cpu_elapsed_exclusive;
 	u64 cpu_elapsed_inclusive;
 };
@@ -34,23 +34,27 @@ struct Profiler_Block {
 	char *file;
 	u32   line;
 	
-	Profiler_Block(char *name, char *file, u32 line, u32 index);
+	Profiler_Block(char *name, char *file, u32 line, u32 index, u64 byte_count);
 	~Profiler_Block();
 };
 
 static Profiler_Record profiler_records[1024];
 static u32 current_profiler_block_index;
 
+static void print_profiler_records(u64 cpu_total, u64 cpu_freq);
+
 #else
 
-#define Prof_Function()
-#define Prof_Block(name)
+#define Prof_Bandwidth(name, byte_count)
 
 #define TU_End_Prof_Static_Assert()
 
 #define print_profiler_records(...)
 
 #endif
+
+#define Prof_Function() Prof_Block(__FUNCTION__)
+#define Prof_Block(name) Prof_Bandwidth(name, 0)
 
 struct Profiler {
 	u64 cpu_start;
