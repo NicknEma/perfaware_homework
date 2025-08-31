@@ -17,6 +17,12 @@ static memory_t pretend_register_is_memory(register_file_t *registers, register_
 	return result;
 }
 
+static memory_t pretend_register_is_memory_u16(register_file_t *registers, register_index index) {
+	register_access_t access = {index, 0, 2};
+	memory_t result = pretend_register_is_memory(registers, access);
+	return result;
+}
+
 static u16 read_register(register_file_t *registers, register_access_t access) {
 	assert((access.Count >= 1) && (access.Count <= 2));
     

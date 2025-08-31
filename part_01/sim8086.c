@@ -210,11 +210,74 @@ static bool simulate_8086_instruction(instruction instr, register_file_t *regist
 			of_set = (~(v0 ^ v1) & (v1 ^ result) & sign_bit) != 0;
 		} break;
 		
+		case Op_adc: {
+			u32 result = (v0 & width_mask) + (v1 & width_mask) + cf_set ? 1 : 0;
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			cf_set = (((v0 & v1) | ((v0 ^ v1) & ~result)) & sign_bit) != 0;
+			af_set = (((v0 & v1) | ((v0 ^ v1) & ~result)) & aux_sign_bit) != 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = (~(v0 ^ v1) & (v1 ^ result) & sign_bit) != 0;
+		} break;
+		
+		case Op_inc: {
+			v1 = 1;
+			u32 result = (v0 & width_mask) + (v1 & width_mask);
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			// NOTE(ema): Don't affect CF
+			af_set = (((v0 & v1) | ((v0 ^ v1) & ~result)) & aux_sign_bit) != 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = (~(v0 ^ v1) & (v1 ^ result) & sign_bit) != 0;
+		} break;
+		
 		case Op_sub: {
 			u32 result = (v0 & width_mask) - (v1 & width_mask);
 			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
 			
 			cf_set = (((v1 & result) | ((v1 ^ result) & ~v0)) & sign_bit) != 0;
+			af_set = (((v1 & result) | ((v1 ^ result) & ~v0)) & aux_sign_bit) != 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = ((v0 ^ v1) & ~(v1 ^ result) & sign_bit) != 0;
+		} break;
+		
+		case Op_sbb: {
+			u32 result = (v0 & width_mask) - (v1 & width_mask) - cf_set ? 1 : 0;
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			cf_set = (((v1 & result) | ((v1 ^ result) & ~v0)) & sign_bit) != 0;
+			af_set = (((v1 & result) | ((v1 ^ result) & ~v0)) & aux_sign_bit) != 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = ((v0 ^ v1) & ~(v1 ^ result) & sign_bit) != 0;
+		} break;
+		
+		case Op_dec: {
+			v1 = 1;
+			u32 result = (v0 & width_mask) - (v1 & width_mask);
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			// NOTE(ema): Don't affect CF
+			af_set = (((v1 & result) | ((v1 ^ result) & ~v0)) & aux_sign_bit) != 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = ((v0 ^ v1) & ~(v1 ^ result) & sign_bit) != 0;
+		} break;
+		
+		case Op_neg: {
+			v0 = 0;
+			u32 result = (v0 & width_mask) - (v1 & width_mask);
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			cf_set = v1 != 0;
 			af_set = (((v1 & result) | ((v1 ^ result) & ~v0)) & aux_sign_bit) != 0;
 			sf_set = (result & sign_bit) != 0;
 			zf_set = result == 0;
@@ -233,8 +296,114 @@ static bool simulate_8086_instruction(instruction instr, register_file_t *regist
 			of_set = ((v0 ^ v1) & ~(v1 ^ result) & sign_bit) != 0;
 		} break;
 		
+		case Op_mul: {
+			memory_t ax_memory = pretend_register_is_memory_u16(registers, Register_a);
+			u32      ax_value  = read_register_u16(registers, Register_a);
+			
+			memory_t dx_memory = pretend_register_is_memory_u16(registers, Register_d);
+			
+			u32 result = (u32)(v0 & width_mask) * (u32)(ax_value & width_mask);
+			if (width == 1) {
+				memory_write_u16(ax_memory, 0, (u16)result);
+			} else {
+				memory_write_u16(ax_memory, 0, (u16)result);
+				memory_write_u16(dx_memory, 0, (u16)(result >> 8));
+			}
+			
+			if (result >> (width * 8)) {
+				cf_set = 1;
+				of_set = 1;
+			} else {
+				cf_set = 0;
+				of_set = 0;
+			}
+		} break;
+		
+		case Op_imul: {
+			memory_t ax_memory = pretend_register_is_memory_u16(registers, Register_a);
+			u32      ax_value  = read_register_u16(registers, Register_a);
+			
+			memory_t dx_memory = pretend_register_is_memory_u16(registers, Register_d);
+			
+			u32 result = (u32)((i32)(u32)(v0 & width_mask) * (i32)(u32)(ax_value & width_mask));
+			if (width == 1) {
+				memory_write_u16(ax_memory, 0, (u16)result);
+			} else {
+				memory_write_u16(ax_memory, 0, (u16)result);
+				memory_write_u16(dx_memory, 0, (u16)(result >> 8));
+			}
+			
+			u32 sign = result & sign_bit;
+			u32 sign_extension = (u32)((i32)sign >> (width * 8));
+			u32 result_hi = result >> (width * 8);
+			if (result_hi != sign_extension) {
+				cf_set = 1;
+				of_set = 1;
+			} else {
+				cf_set = 0;
+				of_set = 0;
+			}
+		} break;
+		
+		case Op_not: {
+			u32 result = (~v0) & width_mask;
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+		} break;
+		
+		case Op_and: {
+			u32 result = (v0 & width_mask) & (v1 & width_mask);
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			cf_set = 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = 0;
+		} break;
+		
+		case Op_or: {
+			u32 result = (v0 & width_mask) | (v1 & width_mask);
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			cf_set = 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = 0;
+		} break;
+		
+		case Op_xor: {
+			u32 result = (v0 & width_mask) ^ (v1 & width_mask);
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			cf_set = 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = 0;
+		} break;
+		
+		case Op_test: {
+			u32 result = (v0 & width_mask) & (v1 & width_mask);
+			
+			cf_set = 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = 0;
+		} break;
+		
 		case Op_shl: {
 			u32 result = (v0 & width_mask) << (v1 & width_mask);
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			if ((v0 & sign_bit) == (result & sign_bit)) {
+				of_set = 0;
+			}
+		} break;
+		
+		case Op_shr: {
+			u32 result = (v0 & width_mask) >> (v1 & width_mask);
 			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
 			
 			if ((v0 & sign_bit) == (result & sign_bit)) {
@@ -383,6 +552,8 @@ static bool simulate_8086_instruction(instruction instr, register_file_t *regist
 	
 	return should_halt;
 }
+
+static_assert(-4 >> 1 == -2, ">> doesn't do sign extension");
 
 static void simulate_8086(memory_t memory, u32 code_offset, u32 code_len, bool exec, bool show) {
 	u8 *code = memory.bytes.data + code_offset;

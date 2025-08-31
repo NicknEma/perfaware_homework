@@ -60,6 +60,7 @@ union register_file_t {
 
 static u8 *get_register_pointer(register_file_t *registers, register_access_t access);
 static memory_t pretend_register_is_memory(register_file_t *registers, register_access_t access);
+static memory_t pretend_register_is_memory_u16(register_file_t *registers, register_index index);
 
 static u16 read_register(register_file_t *registers, register_access_t access);
 static u16 read_register_u16(register_file_t *registers, u32 index);
