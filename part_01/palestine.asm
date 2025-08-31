@@ -8,6 +8,7 @@
 ; ========================================================================
 
 bits 16
+cpu 8086
 
 ; Start image after one row, to avoid overwriting our code!
 mov bp, 64*4
@@ -81,9 +82,10 @@ y_loop_start_r:
 		
 		loop x_loop_start_r
 	
-	mov ax, 128
-	sub ax, dx
-	shl ax, 2
+	mov ax, 128-33
+	add ax, dx
+	shl ax, 1
+	shl ax, 1
 	add bp, ax
 
 	sub dx, 1
