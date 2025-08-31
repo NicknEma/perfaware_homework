@@ -6,53 +6,13 @@
 #include "sim86_shared.h"
 #pragma comment (lib, "sim86_shared_debug.lib")
 
-#define array_count(a) (sizeof(a)/sizeof((a)[0]))
+#include "sim8086_base.h"
+#include "sim8086_memory.h"
+#include "sim8086_registers.h"
 
-#define str_expand_pfirst(s) (s), sizeof(s)
-#define str_expand_sfirst(s) sizeof(s), (s)
-
-static u32 read_file_into_buffer(u8 *buffer, u32 buffer_size, char *name) {
-	u32 bytes_read = 0;
-	
-	FILE *file = fopen(name, "rb");
-	if (file) {
-		fseek(file, 0, SEEK_END);
-		u32 file_size = ftell(file);
-		fseek(file, 0, SEEK_SET);
-		
-		u32 to_read = file_size;
-		if (to_read > buffer_size) to_read = buffer_size;
-		
-		bytes_read = (u32) fread(buffer, 1, to_read, file);
-		if (bytes_read != to_read) {
-			fprintf(stderr, "Error reading file '%s'\n", name);
-		}
-		
-		fclose(file);
-	} else {
-		fprintf(stderr, "Error opening file '%s'\n", name);
-	}
-	
-	return bytes_read;
-}
-
-static u32 write_buffer_to_file(u8 *buffer, u32 buffer_size, char *name) {
-	u32 bytes_written = 0;
-	
-	FILE *file = fopen(name, "wb");
-	if (file) {
-		bytes_written = (u32) fwrite(buffer, 1, buffer_size, file);
-		if (bytes_written != buffer_size) {
-			fprintf(stderr, "Error writing to file '%s'\n", name);
-		}
-		
-		fclose(file);
-	} else {
-		fprintf(stderr, "Error opening file '%s'\n", name);
-	}
-	
-	return bytes_written;
-}
+#include "sim8086_base.c"
+#include "sim8086_memory.c"
+#include "sim8086_registers.c"
 
 static void print_8086_instruction(instruction instr) {
 	char *mnemonic = (char *) Sim86_MnemonicFromOperationType(instr.Op);
@@ -92,53 +52,8 @@ static void print_8086_instruction(instruction instr) {
 	}
 }
 
-typedef i32 register_name;
-enum {
-	Register_None,
-	
-	Register_a,
-	Register_b,
-	Register_c,
-	Register_d,
-	Register_sp,
-	Register_bp,
-	Register_si,
-	Register_di,
-	Register_es,
-	Register_cs,
-	Register_ss,
-	Register_ds,
-	Register_ip,
-	Register_flags,
-	
-	Register_Count,
-} register_name_enum;
-
-typedef u8 cpu_flag_shifts;
-enum {
-	Flag_C_shift = 0,
-	Flag_P_shift = 2,
-	Flag_A_shift = 4,
-	Flag_Z_shift = 6,
-	Flag_S_shift = 7,
-	Flag_T_shift = 8,
-	Flag_I_shift = 9,
-	Flag_D_shift = 10,
-	Flag_O_shift = 11,
-} cpu_flag_shifts_enum;
-
-typedef u16 cpu_flags;
-enum {
-	Flag_C = 1 << Flag_C_shift,
-	Flag_P = 1 << Flag_P_shift,
-	Flag_A = 1 << Flag_A_shift,
-	Flag_Z = 1 << Flag_Z_shift,
-	Flag_S = 1 << Flag_S_shift,
-	Flag_T = 1 << Flag_T_shift,
-	Flag_I = 1 << Flag_I_shift,
-	Flag_D = 1 << Flag_D_shift,
-	Flag_O = 1 << Flag_O_shift,
-} cpu_flags_enum;
+//////////////////////////////////////////
+// Simulation
 
 typedef u8 arithmetic_op_flags;
 enum {
@@ -154,7 +69,7 @@ struct arithmetic_op_info {
 	i32 source_op_index;
 	i32 dest_op_index;
 	arithmetic_op_flags flags;
-	cpu_flags flags_affected;
+	cpu_flags_t flags_affected;
 	u16 (*impl)(u16 op1, u16 op2);
 };
 
@@ -187,7 +102,7 @@ static arithmetic_op_info arithmetic_op_info_from_op(operation_type op) {
 	return info;
 }
 
-static void print_cpu_flags(cpu_flags flags) {
+static void print_cpu_flags(cpu_flags_t flags) {
 	static char flags_chars[] = {
 		[Flag_C_shift] = 'C',
 		[Flag_P_shift] = 'P',
@@ -200,79 +115,25 @@ static void print_cpu_flags(cpu_flags flags) {
 		[Flag_O_shift] = 'O',
 	};
 	for (int i = 0; i < array_count(flags_chars); i += 1) {
-		cpu_flags flag = 1 << i;
+		cpu_flags_t flag = 1 << i;
 		if (flag & flags) {
 			printf("%c", flags_chars[i]);
 		}
 	}
 }
 
-static int count_ones_i8(i8 n) {
-	int ones = 0;
-	for (int i = 0; i < sizeof(i8) * 8; i += 1) {
-		if (n & (1 << i)) {
-			ones += 1;
-		}
-	}
-	return ones;
-}
-
-static int clocks_from_effective_address_expression(effective_address_expression *expr) {
-	int register_count = 0;
-	if (expr->Terms[0].Register.Index != Register_None)
-		register_count += 1;
-	if (expr->Terms[1].Register.Index != Register_None)
-		register_count += 1;
+static bool simulate_8086_instruction(instruction instr, register_file_t *registers, memory_t memory) {
+	bool should_halt = 0;
 	
-	int displacement = expr->Displacement;
+	typedef struct operand_access_t operand_access_t;
+	struct operand_access_t {
+		memory_t memory;
+		pointer_variable_t pointer;
+		u32 value;
+		b32 unaligned;
+	};
 	
-	int clocks = 0;
-	if (register_count == 0) {
-		clocks = 6;
-	} else if (register_count == 1) {
-		if (displacement == 0)
-			clocks = 5;
-		else
-			clocks = 9;
-	} else {
-		int big = 0;
-		if (expr->Terms[0].Register.Index == Register_bp) {
-			if (expr->Terms[1].Register.Index == Register_di)
-				big = 0;
-			else
-				big = 1;
-		} else {
-			if (expr->Terms[1].Register.Index == Register_si)
-				big = 0;
-			else
-				big = 1;
-		}
-		
-		if (displacement == 0) {
-			if (!big)
-				clocks = 7;
-			else
-				clocks = 8;
-		} else {
-			if (!big)
-				clocks = 11;
-			else
-				clocks = 12;
-		}
-	}
-	
-	if (expr->Flags & Address_ExplicitSegment)
-		clocks += 2;
-	
-	return clocks;
-}
-
-static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 register_count, u8 *memory, u32 memory_size) {
-	bool halt = 0;
-	
-	u16 imm_value = 0;
-	u16 *operand_ptrs[array_count(instr.Operands)] = {0};
-	u32 size = 0;
+	operand_access_t accesses[2] = {0};
 	
 	for (int operand_index = 0; operand_index < array_count(instr.Operands); operand_index += 1) {
 		instruction_operand *operand = &instr.Operands[operand_index];
@@ -282,72 +143,44 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 				case Operand_None: break;
 				
 				case Operand_Memory: {
-					u32 operand_size = instr.Flags & Inst_Wide ? 2 : 1;
-					if (size == 0) {
-						size = operand_size;
-					}
-					assert(size == operand_size);
+					accesses[operand_index].memory  = memory;
+					accesses[operand_index].pointer = pointer_from_components(operand->Address, infer_default_segment(operand), registers);
 					
-					effective_address_expression *expr = &operand->Address;
-					effective_address_term *term0 = &expr->Terms[0];
-					effective_address_term *term1 = &expr->Terms[1];
-					
-					i32 term0_val = 0;
-					{
-						u32 term0_size = term0->Register.Count;
-						u16 *term0_ptr = (u16 *) &registers[term0->Register.Index];
-						term0_ptr = (u16 *) ((u8 *) term0_ptr + term0->Register.Offset);
-						memcpy(&term0_val, term0_ptr, term0_size);
-					}
-					
-					i32 term1_val = 0;
-					{
-						u32 term1_size = term1->Register.Count;
-						u16 *term1_ptr = (u16 *) &registers[term1->Register.Index];
-						term1_ptr = (u16 *) ((u8 *) term1_ptr + term1->Register.Offset);
-						memcpy(&term1_val, term1_ptr, term1_size);
-					}
-					
-					u32 offset = term0->Scale * term0_val + term1->Scale * term1_val;
-					if (expr->Flags & Address_ExplicitSegment) {
-						offset += (expr->ExplicitSegment << 4);
-					}
-					offset += expr->Displacement;
-					
-					assert(offset < memory_size);
-					
-					operand_ptrs[operand_index] = (u16 *) (memory + offset);
+					accesses[operand_index].unaligned |= (accesses[operand_index].pointer.offset & 1);
+					accesses[operand_index].value   = memory_read_u16(memory, physical_address_from_pointer_variable(accesses[operand_index].pointer));
 				} break;
 				
 				case Operand_Register: {
-					assert(operand->Register.Index < register_count);
+					assert( operand->Register.Offset <= 1);
+					assert((operand->Register.Count  >= 1) && (operand->Register.Count <= 2));
+					assert((operand->Register.Offset + operand->Register.Count) <= 2);
 					
-					u32 operand_size = operand->Register.Count;
-					if (size == 0) {
-						size = operand_size;
-					}
-					assert(size == operand_size);
-					
-					u16 *address = (u16 *) &registers[operand->Register.Index];
-					address = (u16 *) ((u8 *) address + operand->Register.Offset);
-					operand_ptrs[operand_index] = address;
+					accesses[operand_index].memory = pretend_register_is_memory(registers, operand->Register);
+					accesses[operand_index].value  = read_register(registers, operand->Register);
 				} break;
 				
 				case Operand_Immediate: {
-					imm_value = (u16) operand->Immediate.Value;
-					operand_ptrs[operand_index] = &imm_value;
+					accesses[operand_index].memory = memory;
+					accesses[operand_index].value  = operand->Immediate.Value;
 				} break;
 			}
 		}
 	}
 	
+	operand_access_t op0 = accesses[0];
+	operand_access_t op1 = accesses[1];
+	
+	u32 v0 = op0.value;
+	u32 v1 = op1.value;
+	
 	bool jump_condition_true = 0;
 	
+#if 0
 	switch (instr.Op) {
 		case Op_None: break;
 		
 		case Op_hlt: {
-			halt = 1;
+			should_halt = 1;
 		} break;
 		
 		case Op_mov:
@@ -566,26 +399,27 @@ static bool simulate_8086_instruction(instruction instr, u16 *registers, u32 reg
 			}
 		} break;
 	}
+#endif
 	
-	return halt;
+	return should_halt;
 }
 
-static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code_len, bool exec, bool show) {
-	u8 *code = memory + code_offset;
+static void simulate_8086(memory_t memory, u32 code_offset, u32 code_len, bool exec, bool show) {
+	u8 *code = memory.bytes.data + code_offset;
 	
-	u16 registers[Register_Count] = {0};
+	register_file_t registers = {0};
 	
-	registers[Register_ip] = 0;
-	while (registers[Register_ip] < code_len) {
+	registers.ip = 0;
+	while (registers.ip < code_len) {
 		instruction decoded = {0};
-		Sim86_Decode8086Instruction(code_len - registers[Register_ip], code + registers[Register_ip], &decoded);
+		Sim86_Decode8086Instruction(code_len - registers.ip, code + registers.ip, &decoded);
 		if (decoded.Op) {
-			u16 old_register_vals[Register_Count] = {0};
+			register_file_t old_registers = {0};
 			if (show) {
-				memcpy(old_register_vals, registers, sizeof(u16) * Register_Count);
+				old_registers = registers;
 			}
 			
-			registers[Register_ip] += (u16) decoded.Size;
+			registers.ip += (u16)decoded.Size;
 			
 			if (show) {
 				print_8086_instruction(decoded);
@@ -595,23 +429,21 @@ static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code
 					printf(" ; ");
 				}
 				
-				bool halt = simulate_8086_instruction(decoded, registers, array_count(registers),
-													  memory, memory_size);
+				bool halt = simulate_8086_instruction(decoded, &registers, memory);
 				
 				if (show) {
-					u16 new_register_vals[Register_Count] = {0};
-					memcpy(new_register_vals, registers, sizeof(u16) * Register_Count);
+					register_file_t new_registers = registers;
 					
 					for (int reg_index = 0; reg_index < Register_Count; reg_index += 1) {
-						if (reg_index != Register_flags && old_register_vals[reg_index] != new_register_vals[reg_index]) {
+						if (reg_index != Register_flags && old_registers.as_words[reg_index] != new_registers.as_words[reg_index]) {
 							register_access reg = {reg_index, 0, 2};
 							printf("%s: 0x%x->0x%x, ", Sim86_RegisterNameFromOperand(&reg),
-								   old_register_vals[reg_index], new_register_vals[reg_index]);
+								   old_registers.as_words[reg_index], new_registers.as_words[reg_index]);
 						}
 					}
 					
-					cpu_flags old_flags = old_register_vals[Register_flags];
-					cpu_flags new_flags = new_register_vals[Register_flags];
+					cpu_flags_t old_flags = old_registers.as_words[Register_flags];
+					cpu_flags_t new_flags = new_registers.as_words[Register_flags];
 					
 					if (old_flags != new_flags) {
 						printf("flags: ");
@@ -638,17 +470,15 @@ static void simulate_8086(u8 *memory, u32 memory_size, u32 code_offset, u32 code
 		if (reg_index != Register_flags) {
 			register_access reg = {reg_index, 0, 2};
 			printf("\t%s: 0x%x (%i)\n", Sim86_RegisterNameFromOperand(&reg),
-				   registers[reg_index], registers[reg_index]);
+				   registers.as_words[reg_index], registers.as_words[reg_index]);
 		}
 	}
 	
 	printf("    flags: ");
-	print_cpu_flags(registers[Register_flags]);
+	print_cpu_flags(registers.as_words[Register_flags]);
 	printf("\n");
 	
 	printf("\n");
-	
-	(void) memory_size;
 }
 
 int main(int argc, char **argv) {
@@ -661,8 +491,11 @@ int main(int argc, char **argv) {
 		ok = 0;
 	}
 	
-	u32 memory_size = 1024 * 64;
-	u8 *memory = 0;
+	buffer_t bytes = {0};
+	bytes.len = 1024 * 64;
+	bytes.data = calloc(1, bytes.len);
+	
+	memory_t memory = make_memory(bytes, 20);
 	
 	u32 code_len = 0;
 	
@@ -700,9 +533,8 @@ int main(int argc, char **argv) {
 	}
 	
 	if (ok) {
-		memory = calloc(1, memory_size);
-		if (memory) {
-			code_len = read_file_into_buffer(memory, memory_size, file_name);
+		if (memory.bytes.data) {
+			code_len = (u32)read_file_into_buffer(memory.bytes, file_name);
 			if (code_len == 0) ok = 0;
 		} else {
 			fprintf(stderr, "Out of memory");
@@ -711,10 +543,10 @@ int main(int argc, char **argv) {
 	}
 	
 	if (ok) {
-		simulate_8086(memory, memory_size, 0, code_len, exec, show);
+		simulate_8086(memory, 0, code_len, exec, show);
 		
 		if (dump) {
-			write_buffer_to_file(memory, memory_size, "dump.data");
+			write_buffer_to_file(memory.bytes, "dump.data");
 		}
 	}
 	
