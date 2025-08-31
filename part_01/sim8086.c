@@ -167,6 +167,22 @@ static bool simulate_8086_instruction(instruction instr, register_file_t *regist
 		}
 	}
 	
+	u32 width      = (instr.Flags & Inst_Wide) ? 2 : 1;
+	u32 width_mask = (1 << (8 * width)) - 1;
+	u32 sign_bit   =  1 << (8 * width - 1);
+	
+	u32 aux_sign_bit = 1 << 3;
+	
+	bool cf_set = (registers->flags & Flag_C) != 0;
+	bool pf_set = (registers->flags & Flag_P) != 0;
+	bool af_set = (registers->flags & Flag_A) != 0;
+	bool zf_set = (registers->flags & Flag_Z) != 0;
+	bool sf_set = (registers->flags & Flag_S) != 0;
+	bool tf_set = (registers->flags & Flag_T) != 0;
+	bool if_set = (registers->flags & Flag_I) != 0;
+	bool df_set = (registers->flags & Flag_D) != 0;
+	bool of_set = (registers->flags & Flag_O) != 0;
+	
 	operand_access_t op0 = accesses[0];
 	operand_access_t op1 = accesses[1];
 	
@@ -175,115 +191,58 @@ static bool simulate_8086_instruction(instruction instr, register_file_t *regist
 	
 	bool jump_condition_true = 0;
 	
-#if 0
 	switch (instr.Op) {
 		case Op_None: break;
 		
-		case Op_hlt: {
-			should_halt = 1;
+		case Op_mov: {
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)v1, width);
 		} break;
 		
-		case Op_mov:
-		case Op_add:
-		case Op_sub:
+		case Op_add: {
+			u32 result = (v0 & width_mask) + (v1 & width_mask);
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			cf_set = (((v0 & v1) | ((v0 ^ v1) & ~result)) & sign_bit) != 0;
+			af_set = (((v0 & v1) | ((v0 ^ v1) & ~result)) & aux_sign_bit) != 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = (~(v0 ^ v1) & (v1 ^ result) & sign_bit) != 0;
+		} break;
+		
+		case Op_sub: {
+			u32 result = (v0 & width_mask) - (v1 & width_mask);
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
+			
+			cf_set = (((v1 & result) | ((v1 ^ result) & ~v0)) & sign_bit) != 0;
+			af_set = (((v1 & result) | ((v1 ^ result) & ~v0)) & aux_sign_bit) != 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = ((v0 ^ v1) & ~(v1 ^ result) & sign_bit) != 0;
+		} break;
+		
 		case Op_cmp: {
-			assert(size != 0);
+			u32 result = (v0 & width_mask) - (v1 & width_mask);
 			
-			arithmetic_op_info info = arithmetic_op_info_from_op(instr.Op);
+			cf_set = (((v1 & result) | ((v1 ^ result) & ~v0)) & sign_bit) != 0;
+			af_set = (((v1 & result) | ((v1 ^ result) & ~v0)) & aux_sign_bit) != 0;
+			sf_set = (result & sign_bit) != 0;
+			zf_set = result == 0;
+			pf_set = count_ones_i8(result & 0xFF) % 2 == 0;
+			of_set = ((v0 ^ v1) & ~(v1 ^ result) & sign_bit) != 0;
+		} break;
+		
+		case Op_shl: {
+			u32 result = (v0 & width_mask) << (v1 & width_mask);
+			memory_write_n(op0.memory, physical_address_from_pointer_variable(op0.pointer), (u16)result, width);
 			
-			u16 source_val = 0;
-			u16 dest_val = 0;
-			
-			memcpy(&source_val, operand_ptrs[info.source_op_index], size);
-			memcpy(&dest_val, operand_ptrs[info.dest_op_index], size);
-			
-			u16 result = info.impl(dest_val, source_val);
-			
-			if (info.flags & Aop_flag_writeback) {
-				memcpy(operand_ptrs[info.dest_op_index], &result, size);
-			}
-			
-			u16 new_dest_val = 0;
-			memcpy(&new_dest_val, operand_ptrs[info.dest_op_index], size);
-			
-			if (info.flags_affected & Flag_C) {
-				bool carry = 0;
-				u16 sign_bit = 1 << (8 * size - 1);
-				if (info.flags & Aop_flag_addish) {
-					carry = (((dest_val & source_val) | ((dest_val ^ source_val) & ~result)) & sign_bit) != 0;
-				} else if (info.flags & Aop_flag_subbish) {
-					carry = (((source_val & result) | ((source_val ^ result) & ~dest_val)) & sign_bit) != 0;
-				}
-				if (carry) {
-					registers[Register_flags] |= Flag_C;
-				} else {
-					registers[Register_flags] &= ~Flag_C;
-				}
-			}
-			
-			if (info.flags_affected & Flag_A) {
-				bool aux = 0;
-				u16 sign_bit = 1 << 3;
-				if (info.flags & Aop_flag_addish) {
-					aux = (((dest_val & source_val) | ((dest_val ^ source_val) & ~result)) & sign_bit) != 0;
-				} else if (info.flags & Aop_flag_subbish) {
-					aux = (((source_val & result) | ((source_val ^ result) & ~dest_val)) & sign_bit) != 0;
-				}
-				if (aux) {
-					registers[Register_flags] |= Flag_A;
-				} else {
-					registers[Register_flags] &= ~Flag_A;
-				}
-			}
-			
-			if (info.flags_affected & Flag_S) {
-				u16 sign_bit = 1 << (8 * size - 1);
-				if (result & sign_bit) {
-					registers[Register_flags] |= Flag_S;
-				} else {
-					registers[Register_flags] &= ~Flag_S;
-				}
-			}
-			
-			if (info.flags_affected & Flag_Z) {
-				if (result == 0) {
-					registers[Register_flags] |= Flag_Z;
-				} else {
-					registers[Register_flags] &= ~Flag_Z;
-				}
-			}
-			
-			if (info.flags_affected & Flag_P) {
-				if (count_ones_i8(result & 0xFF) % 2 == 0) {
-					registers[Register_flags] |= Flag_P;
-				} else {
-					registers[Register_flags] &= ~Flag_P;
-				}
-			}
-			
-			if (info.flags_affected & Flag_O) {
-				bool overflow = 0;
-				u16 sign_bit = 1 << (8 * size - 1);
-				if (info.flags & Aop_flag_addish) {
-					overflow = (~(dest_val ^ source_val) & (source_val ^ result) & sign_bit) != 0;
-				} else if (info.flags & Aop_flag_subbish) {
-					overflow = ((dest_val ^ source_val) & ~(source_val ^ result) & sign_bit) != 0;
-				} else if (info.flags & Aop_flag_shift) {
-					// TODO(ema): This is wrong! It correctly *clears* the value when it should,
-					// but it also *sets* it; according to the manual, shifts never set this flag,
-					// they can only clear it.
-					// The system I have in place right now is not powerful enough to express this
-					// idea.
-					overflow = (dest_val & sign_bit) != (result & sign_bit);
-				}
-				if (overflow) {
-					registers[Register_flags] |= Flag_O;
-				} else {
-					registers[Register_flags] &= ~Flag_O;
-				}
+			if ((v0 & sign_bit) == (result & sign_bit)) {
+				of_set = 0;
 			}
 		} break;
 		
+#if 0
 		case Op_je: {
 			u16 flag_expr = registers[Register_flags] >> Flag_Z_shift & 1;
 			jump_condition_true = flag_expr == 1;
@@ -398,8 +357,29 @@ static bool simulate_8086_instruction(instruction instr, register_file_t *regist
 				registers[Register_ip] += offset;
 			}
 		} break;
-	}
 #endif
+		
+		case Op_hlt: {
+			should_halt = 1;
+		} break;
+		
+		default: {
+			fprintf(stderr, "Error: Unimplemented instruction.\n");
+		} break;
+	}
+	
+	u16 cf_bit = !!cf_set << Flag_C_shift;
+	u16 pf_bit = !!pf_set << Flag_P_shift;
+	u16 af_bit = !!af_set << Flag_A_shift;
+	u16 zf_bit = !!zf_set << Flag_Z_shift;
+	u16 sf_bit = !!sf_set << Flag_S_shift;
+	u16 tf_bit = !!tf_set << Flag_T_shift;
+	u16 if_bit = !!if_set << Flag_I_shift;
+	u16 df_bit = !!df_set << Flag_D_shift;
+	u16 of_bit = !!of_set << Flag_O_shift;
+	
+	registers->flags = (cf_bit | pf_bit | af_bit | zf_bit | sf_bit |
+						tf_bit | if_bit | df_bit | of_bit);
 	
 	return should_halt;
 }

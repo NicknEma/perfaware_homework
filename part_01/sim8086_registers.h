@@ -10,10 +10,14 @@ typedef i32 register_name_t;
 enum {
 	Register_None,
 	
+	// NOTE(ema): In the manual the order of the first 4 registers is "a, c, d, b",
+	// but since I'm using Casey's decoding library I have to reproduce his order
+	// if I don't want to do a remapping step every time.
+	
 	Register_a,
+	Register_b,
 	Register_c,
 	Register_d,
-	Register_b,
 	Register_sp,
 	Register_bp,
 	Register_si,
@@ -30,11 +34,14 @@ enum {
 
 typedef union register_file_t register_file_t;
 union register_file_t {
+	// NOTE(ema): See above comment about register order.
+	
 	struct {
+		u16 _none;
 		union {struct {u8 al, ah;}; u16 ax;};
+		union {struct {u8 bl, bh;}; u16 bx;};
 		union {struct {u8 cl, ch;}; u16 cx;};
 		union {struct {u8 dl, dh;}; u16 dx;};
-		union {struct {u8 bl, bh;}; u16 bx;};
 		u16 sp;
 		u16 bp;
 		u16 si;
