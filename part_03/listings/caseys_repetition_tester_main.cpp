@@ -1,0 +1,206 @@
+/* ========================================================================
+
+   (C) Copyright 2023 by Molly Rocket, Inc., All Rights Reserved.
+   
+   This software is provided 'as-is', without any express or implied
+   warranty. In no event will the authors be held liable for any damages
+   arising from the use of this software.
+   
+   Please see https://computerenhance.com for more information
+   
+   ======================================================================== */
+
+/* ========================================================================
+   LISTING 111
+   ======================================================================== */
+
+/* NOTE(casey): _CRT_SECURE_NO_WARNINGS is here because otherwise we cannot
+   call fopen(). If we replace fopen() with fopen_s() to avoid the warning,
+   then the code doesn't compile on Linux anymore, since fopen_s() does not
+   exist there.
+   
+   What exactly the CRT maintainers were thinking when they made this choice,
+   I have no idea. */
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <math.h>
+#include <sys/stat.h>
+
+typedef uint8_t u8;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+typedef int32_t b32;
+
+typedef float f32;
+typedef double f64;
+
+#define ArrayCount(Array) (sizeof(Array)/sizeof((Array)[0]))
+
+#include "listing_0068_buffer.cpp"
+#include "listing_0108_platform_metrics.cpp"
+#include "listing_0109_pagefault_repetition_tester.cpp"
+#include "listing_0106_mallocread_overhead_test.cpp"
+#include "listing_0110_pagefault_overhead_test.cpp"
+
+extern "C" void write_mov_asm(u64, u8 *);
+extern "C" void write_nop_asm(u64);
+extern "C" void write_cmp_asm(u64);
+extern "C" void write_dec_asm(u64);
+#pragma comment(lib, "haversine_repetition_tester_loops.lib")
+
+static void write_mov(repetition_tester *Tester, read_parameters *Params)
+{
+    while(IsTesting(Tester))
+    {
+        buffer DestBuffer = Params->Dest;
+        HandleAllocation(Params, &DestBuffer);
+        
+        BeginTime(Tester);
+        write_mov_asm(DestBuffer.Count, DestBuffer.Data);
+        EndTime(Tester);
+        
+        CountBytes(Tester, DestBuffer.Count);
+        
+        HandleDeallocation(Params, &DestBuffer);
+    }
+}
+
+static void write_nop(repetition_tester *Tester, read_parameters *Params)
+{
+    while(IsTesting(Tester))
+    {
+        buffer DestBuffer = Params->Dest;
+        HandleAllocation(Params, &DestBuffer);
+        
+        BeginTime(Tester);
+        write_nop_asm(DestBuffer.Count);
+        EndTime(Tester);
+        
+        CountBytes(Tester, DestBuffer.Count);
+        
+        HandleDeallocation(Params, &DestBuffer);
+    }
+}
+
+static void write_cmp(repetition_tester *Tester, read_parameters *Params)
+{
+    while(IsTesting(Tester))
+    {
+        buffer DestBuffer = Params->Dest;
+        HandleAllocation(Params, &DestBuffer);
+        
+        BeginTime(Tester);
+        write_cmp_asm(DestBuffer.Count);
+        EndTime(Tester);
+        
+        CountBytes(Tester, DestBuffer.Count);
+        
+        HandleDeallocation(Params, &DestBuffer);
+    }
+}
+
+static void write_dec(repetition_tester *Tester, read_parameters *Params)
+{
+    while(IsTesting(Tester))
+    {
+        buffer DestBuffer = Params->Dest;
+        HandleAllocation(Params, &DestBuffer);
+        
+        BeginTime(Tester);
+        write_dec_asm(DestBuffer.Count);
+        EndTime(Tester);
+        
+        CountBytes(Tester, DestBuffer.Count);
+        
+        HandleDeallocation(Params, &DestBuffer);
+    }
+}
+
+struct test_function
+{
+    char const *Name;
+    read_overhead_test_func *Func;
+};
+test_function TestFunctions[] =
+{
+    {"WriteToAllBytes", WriteToAllBytes},
+    // {"fread", ReadViaFRead},
+    // {"_read", ReadViaRead},
+    // {"ReadFile", ReadViaReadFile},
+	{"write_mov", write_mov},
+	{"write_nop", write_nop},
+	{"write_cmp", write_cmp},
+	{"write_dec", write_dec},
+};
+
+int main(int ArgCount, char **Args)
+{
+    // NOTE(casey): Since we do not use these functions in this particular build, we reference their pointers
+    // here to prevent the compiler from complaining about "unused functions".
+    (void)&IsInBounds;
+    (void)&AreEqual;
+	
+    InitializeOSMetrics();
+    u64 CPUTimerFreq = EstimateCPUTimerFreq();
+    
+    if(ArgCount == 2)
+    {
+        char *FileName = Args[1];
+#if _WIN32
+        struct __stat64 Stat;
+        _stat64(FileName, &Stat);
+#else
+        struct stat Stat;
+        stat(FileName, &Stat);
+#endif
+        
+        read_parameters Params = {};
+        Params.Dest = AllocateBuffer(Stat.st_size);
+        Params.FileName = FileName;
+		
+        if(Params.Dest.Count > 0)
+        {
+            repetition_tester Testers[ArrayCount(TestFunctions)][AllocType_Count] = {};
+            
+            for(;;)
+            {
+                for(u32 FuncIndex = 0; FuncIndex < ArrayCount(TestFunctions); ++FuncIndex)
+                {
+                    for(u32 AllocType = 0; AllocType < AllocType_Count; ++AllocType)
+                    {
+                        Params.AllocType = (allocation_type)AllocType;
+                        if (Params.AllocType != AllocType_none) continue;
+						
+                        repetition_tester *Tester = &Testers[FuncIndex][AllocType];
+                        test_function TestFunc = TestFunctions[FuncIndex];
+                        
+                        printf("\n--- %s%s%s ---\n",
+                               DescribeAllocationType(Params.AllocType),
+                               Params.AllocType ? " + " : "",
+                               TestFunc.Name);
+                        NewTestWave(Tester, Params.Dest.Count, CPUTimerFreq);
+                        TestFunc.Func(Tester, &Params);
+                    }
+                }
+            }
+            
+            // NOTE(casey): We would normally call this here, but we can't because the compiler will complain about "unreachable code".
+            // So instead we just reference the pointer to prevent the compiler complaining about unused function :(
+            (void)&FreeBuffer;
+        }
+        else
+        {
+            fprintf(stderr, "ERROR: Test data size must be non-zero\n");
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Usage: %s [existing filename]\n", Args[0]);
+    }
+	
+    return 0;
+}

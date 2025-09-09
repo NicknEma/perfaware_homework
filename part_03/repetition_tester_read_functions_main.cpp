@@ -1,12 +1,8 @@
-#include "haversine_base.h"
-#include "haversine_timing.h"
-#include "haversine_profiler.h"
-#include "haversine_repetition_tester.h"
+#include "repetition_tester_shared.h"
+#include "repetition_tester.h"
 
-#include "haversine_base.cpp"
-#include "haversine_timing.cpp"
-#include "haversine_profiler.cpp"
-#include "haversine_repetition_tester.cpp"
+#include "repetition_tester_shared.cpp"
+#include "repetition_tester.cpp"
 
 struct Test_Buffer {
 	u64 len;
@@ -18,7 +14,7 @@ struct Test_Parameters {
 	Test_Buffer buffer;
 };
 
-typedef void Read_Proc(Repetition_Tester *Tester, Test_Parameters *params);
+typedef void Test_Proc(Repetition_Tester *Tester, Test_Parameters *params);
 
 static void read_via_fread(Repetition_Tester *tester, Test_Parameters *params) {
 	while (is_testing(tester)) {
@@ -44,13 +40,12 @@ static void read_via_fread(Repetition_Tester *tester, Test_Parameters *params) {
 		} else {
 			record_error(tester, "fopen failed");
 		}
-		
-		// end_repetition(tester);
 	}
 }
 
 static void read_via_ReadFile(Repetition_Tester *tester, Test_Parameters *params) {
 	while (is_testing(tester)) {
+#if _WIN32
 		HANDLE file = CreateFileA(params->file_name, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 		if (file && file != INVALID_HANDLE_VALUE) {
 			Test_Buffer buffer = params->buffer;
@@ -74,9 +69,11 @@ static void read_via_ReadFile(Repetition_Tester *tester, Test_Parameters *params
 		} else {
 			record_error(tester, "CreateFileA failed");
 		}
-		
-		// end_repetition(tester);
 	}
+#else
+	(void) tester;
+	(void) params;
+#endif
 }
 
 static void write_forward(Repetition_Tester *tester, Test_Parameters *params) {
@@ -92,19 +89,18 @@ static void write_forward(Repetition_Tester *tester, Test_Parameters *params) {
 		end_timed_block(tester);
 		
 		accumulate_byte_count(tester, buffer.len);
-		// end_repetition(tester);
 	}
 }
 
 struct Test_Target {
 	char *name;
-	Read_Proc *read_proc;
+	Test_Proc *test_proc;
 };
 
 static Test_Target targets[] = {
-	"fread", read_via_fread,
-	"ReadFile", read_via_ReadFile,
-	// "write_forward", write_forward,
+	{"fread", read_via_fread},
+	{"ReadFile", read_via_ReadFile},
+	{"write_forward", write_forward},
 };
 
 int main(int argc, char **argv) {
@@ -115,17 +111,22 @@ int main(int argc, char **argv) {
 		
 		params.buffer.len = get_file_size(params.file_name);
 		if (params.buffer.len != 0) {
-			params.buffer.data = (u8 *) malloc(params.buffer.len);
+			
+#if _WIN32
+			params.buffer.data = (u8 *) VirtualAlloc(0, params.buffer.len, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+#else
+			params.buffer.data = (u8 *) mmap(0, params.buffer.len, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+#endif
 			
 			u64 cpu_freq = estimate_cpu_timer_frequency();
 			
 			Repetition_Tester testers[array_count(targets)] = {};
 			for (;;) {
-				for (int target_index = 0; target_index < array_count(targets); target_index += 1) {
+				for (u32 target_index = 0; target_index < array_count(targets); target_index += 1) {
 					printf("--- Now testing: %s ---\n", targets[target_index].name);
 					
 					start_test_wave(&testers[target_index], params.buffer.len, cpu_freq);
-					targets[target_index].read_proc(&testers[target_index], &params);
+					targets[target_index].test_proc(&testers[target_index], &params);
 					
 					printf("\n");
 				}
