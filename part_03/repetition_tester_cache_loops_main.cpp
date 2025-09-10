@@ -23,12 +23,6 @@ struct Test_Target {
 	Test_Proc *test_proc;
 };
 
-static void write_forward(u64 count, u8 *data) {
-	for (u64 byte_index = 0; byte_index < count; byte_index += 1) {
-		data[byte_index] = (u8)byte_index;
-	}
-}
-
 static Test_Target targets[] = {
 #if 0
 	"read_cache_noskip", read_cache_noskip,
