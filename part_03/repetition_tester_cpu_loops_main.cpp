@@ -58,7 +58,7 @@ static char *describe_pattern(Test_Pattern pattern) {
     return result;
 }
 
-static void fill_buffer(Test_Buffer buffer, Test_Pattern pattern) {
+static void fill_buffer(Buffer buffer, Test_Pattern pattern) {
 	switch (pattern) {
         case Test_Pattern_ZEROS:
         case Test_Pattern_ONES:
