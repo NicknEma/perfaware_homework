@@ -120,6 +120,8 @@ int main(int argc, char **argv) {
 						
 						printf("\n");
 					}
+					
+					printf("====================\n\n");
 				}
 			} else {
 				fprintf(stderr, "Out of memory.\n");

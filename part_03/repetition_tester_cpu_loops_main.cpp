@@ -185,6 +185,8 @@ int main() {
 					
 					printf("\n");
 				}
+				
+				printf("====================\n\n");
 #if TEST_FILL_PATTERNS
 			}
 #endif
