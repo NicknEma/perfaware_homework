@@ -31,11 +31,11 @@ extern "C" void read_bandw_256x2(u64, u8 *);
 #pragma comment(lib, "repetition_tester_cpu_loops.lib")
 
 enum Test_Pattern : u32 {
-    Test_Pattern_ZEROS,
-	Test_Pattern_ONES,
-	Test_Pattern_MOD2,
-	Test_Pattern_MOD3,
-	Test_Pattern_MOD4,
+    Test_Pattern_NEVER_TAKEN,
+	Test_Pattern_ALWAYS_TAKEN,
+	Test_Pattern_EVERY_2,
+	Test_Pattern_EVERY_3,
+	Test_Pattern_EVERY_4,
 	Test_Pattern_CRTRAND,
 	Test_Pattern_OSRAND,
 	
@@ -45,44 +45,52 @@ enum Test_Pattern : u32 {
 static char *describe_pattern(Test_Pattern pattern) {
     char *result = 0;
     switch (pattern) {
-        case Test_Pattern_ZEROS: {result = "never taken";} break;
-        case Test_Pattern_ONES: {result = "always taken";} break;
-		case Test_Pattern_MOD2: {result = "every 2";} break;
-		case Test_Pattern_MOD3: {result = "every 3";} break;
-		case Test_Pattern_MOD4: {result = "every 4";} break;
+        case Test_Pattern_NEVER_TAKEN:  {result =  "never taken";} break;
+        case Test_Pattern_ALWAYS_TAKEN: {result = "always taken";} break;
+		case Test_Pattern_EVERY_2: {result =  "every 2";} break;
+		case Test_Pattern_EVERY_3: {result =  "every 3";} break;
+		case Test_Pattern_EVERY_4: {result =  "every 4";} break;
 		case Test_Pattern_CRTRAND: {result = "CRT rand";} break;
-		case Test_Pattern_OSRAND: {result = "OS rand";} break;
+		case Test_Pattern_OSRAND:  {result =  "OS rand";} break;
         default: {result = "UNKNOWN";} break;
     }
-    
     return result;
 }
 
 static void fill_buffer(Buffer buffer, Test_Pattern pattern) {
 	switch (pattern) {
-        case Test_Pattern_ZEROS:
-        case Test_Pattern_ONES:
-		case Test_Pattern_MOD2:
-		case Test_Pattern_MOD3:
-		case Test_Pattern_MOD4:
-		case Test_Pattern_CRTRAND: {
-			
-			for (u64 index = 0; index < buffer.len; index += 1) {
-				u8 value = 0;
-				
-				switch (pattern) {
-					case Test_Pattern_ZEROS: {value = 0;} break;
-					case Test_Pattern_ONES: {value = 1;} break;
-					case Test_Pattern_MOD2: {value = (index % 2) == 0;} break;
-					case Test_Pattern_MOD3: {value = (index % 3) == 0;} break;
-					case Test_Pattern_MOD4: {value = (index % 4) == 0;} break;
-					case Test_Pattern_CRTRAND: {value = (u8)rand();} break;
-					default: break;
-				}
-				
-				buffer.data[index] = value;
+        case Test_Pattern_NEVER_TAKEN: {
+			memset(buffer.data, 0, sizeof(u8)*buffer.len);
+		} break;
+		
+        case Test_Pattern_ALWAYS_TAKEN: {
+			memset(buffer.data, 1, sizeof(u8)*buffer.len);
+		} break;
+		
+		case Test_Pattern_EVERY_2:
+		case Test_Pattern_EVERY_3: 
+		case Test_Pattern_EVERY_4: {
+			u64 divisor = 0;
+			switch (pattern) {
+				case Test_Pattern_EVERY_2: {divisor = 2;} break;
+				case Test_Pattern_EVERY_3: {divisor = 3;} break;
+				case Test_Pattern_EVERY_4: {divisor = 4;} break;
+				default: break;
 			}
 			
+			assert(divisor != 0);
+			
+			for (u64 index = 0; index < buffer.len - 1; index += 2) {
+				buffer.data[index + 0] = ((index + 0) % divisor) == 0;
+				buffer.data[index + 1] = ((index + 1) % divisor) == 0;
+			}
+		} break;
+		
+		case Test_Pattern_CRTRAND: {
+			for (u64 index = 0; index < buffer.len - 1; index += 2) {
+				buffer.data[index + 0] = (u8)rand();
+				buffer.data[index + 1] = (u8)rand();
+			}
 		} break;
 		
 		// case Test_Pattern_OSRAND: {result = "OS rand";} break;
@@ -113,8 +121,8 @@ static Test_Target targets[] = {
 	"write_nop", write_nop_asm,
 	"write_cmp", write_cmp_asm,
 	"write_dec", write_dec_asm,
-	"write_skip_nop", write_skip_nop_asm,
 #endif
+	"write_skip_nop", write_skip_nop_asm,
 	
 #if 0
 	"read_ports_8x1", read_ports_8x1,
@@ -133,7 +141,7 @@ static Test_Target targets[] = {
 	"write_ports_8x4", write_ports_8x4,
 #endif
 	
-#if 1
+#if 0
 	"read_bandw_32x2", read_bandw_32x2,
 	"read_bandw_64x2", read_bandw_64x2,
 	"read_bandw_128x2", read_bandw_128x2,
@@ -142,7 +150,7 @@ static Test_Target targets[] = {
 };
 
 #if !defined(TEST_FILL_PATTERNS)
-#define TEST_FILL_PATTERNS 0
+#define TEST_FILL_PATTERNS 1
 #endif
 
 int main() {
