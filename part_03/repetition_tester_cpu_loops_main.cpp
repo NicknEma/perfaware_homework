@@ -23,11 +23,6 @@ extern "C" void write_ports_8x2(u64, u8 *);
 extern "C" void write_ports_8x3(u64, u8 *);
 extern "C" void write_ports_8x4(u64, u8 *);
 
-extern "C" void read_bandw_32x2(u64, u8 *);
-extern "C" void read_bandw_64x2(u64, u8 *);
-extern "C" void read_bandw_128x2(u64, u8 *);
-extern "C" void read_bandw_256x2(u64, u8 *);
-
 #pragma comment(lib, "repetition_tester_cpu_loops.lib")
 
 enum Test_Pattern : u32 {
@@ -134,18 +129,11 @@ static Test_Target targets[] = {
 	"read_ports_4x2", read_ports_4x2,
 #endif
 	
-#if 0
+#if 1
 	"write_ports_8x1", write_ports_8x1,
 	"write_ports_8x2", write_ports_8x2,
 	"write_ports_8x3", write_ports_8x3,
 	"write_ports_8x4", write_ports_8x4,
-#endif
-	
-#if 0
-	"read_bandw_32x2", read_bandw_32x2,
-	"read_bandw_64x2", read_bandw_64x2,
-	"read_bandw_128x2", read_bandw_128x2,
-	"read_bandw_256x2", read_bandw_256x2,
 #endif
 };
 
@@ -156,7 +144,7 @@ static Test_Target targets[] = {
 int main() {
 	int exit_code = 0;
 	
-	Buffer buffer = alloc_buffer(1*1024*1024*1024 + 8);
+	Buffer buffer = alloc_buffer(GIGABYTE + 8);
 	if (is_valid(buffer)) {
 		u64 cpu_freq = estimate_cpu_timer_frequency();
 		
