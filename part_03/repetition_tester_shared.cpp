@@ -24,6 +24,14 @@ static u64 get_file_size(char *name) {
 	return info.st_size;
 }
 
+static Buffer alloc_buffer(u64 size) {
+	Buffer result = {};
+	result.data = (u8 *) VirtualAlloc(0, size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+	result.len  = size;
+	
+	return result;
+}
+
 #else
 
 #include <x86intrin.h>
@@ -46,6 +54,14 @@ static u64 get_file_size(char *name) {
 	struct stat info = {};
 	stat(name, &info);
 	return info.st_size;
+}
+
+static Buffer alloc_buffer(u64 size) {
+	Buffer result = {};
+	result.data = (u8 *) mmap(0, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+	result.len  = size;
+	
+	return result;
 }
 
 #endif
@@ -75,4 +91,8 @@ static u64 estimate_cpu_timer_frequency(u64 milliseconds_to_wait) {
 	}
 	
 	return cpu_freq;
+}
+
+static bool is_valid(Buffer buffer) {
+	return buffer.data != 0 || buffer.len == 0;
 }

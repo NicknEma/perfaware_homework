@@ -4,14 +4,9 @@
 #include "repetition_tester_shared.cpp"
 #include "repetition_tester.cpp"
 
-struct Test_Buffer {
-	u64 len;
-	u8 *data;
-};
-
 struct Test_Parameters {
     char *file_name;
-	Test_Buffer buffer;
+	Buffer buffer;
 };
 
 typedef void Test_Proc(Repetition_Tester *Tester, Test_Parameters *params);
@@ -20,7 +15,7 @@ static void read_via_fread(Repetition_Tester *tester, Test_Parameters *params) {
 	while (is_testing(tester)) {
 		FILE *file = fopen(params->file_name, "rb");
 		if (file) {
-			Test_Buffer buffer = params->buffer;
+			Buffer buffer = params->buffer;
 			
 			size_t bytes_read = 0;
 			
@@ -48,7 +43,7 @@ static void read_via_ReadFile(Repetition_Tester *tester, Test_Parameters *params
 #if _WIN32
 		HANDLE file = CreateFileA(params->file_name, GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 		if (file && file != INVALID_HANDLE_VALUE) {
-			Test_Buffer buffer = params->buffer;
+			Buffer buffer = params->buffer;
 			
 			bool ok = false;
 			u32 bytes_read = 0;
@@ -78,7 +73,7 @@ static void read_via_ReadFile(Repetition_Tester *tester, Test_Parameters *params
 
 static void write_forward(Repetition_Tester *tester, Test_Parameters *params) {
 	while (is_testing(tester)) {
-		Test_Buffer buffer = params->buffer;
+		Buffer buffer = params->buffer;
 		
 		begin_timed_block(tester);
 		{
@@ -109,27 +104,26 @@ int main(int argc, char **argv) {
 		Test_Parameters params = {};
 		params.file_name = argv[1];
 		
-		params.buffer.len = get_file_size(params.file_name);
-		if (params.buffer.len != 0) {
-			
-#if _WIN32
-			params.buffer.data = (u8 *) VirtualAlloc(0, params.buffer.len, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-#else
-			params.buffer.data = (u8 *) mmap(0, params.buffer.len, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-#endif
-			
-			u64 cpu_freq = estimate_cpu_timer_frequency();
-			
-			Repetition_Tester testers[array_count(targets)] = {};
-			for (;;) {
-				for (u32 target_index = 0; target_index < array_count(targets); target_index += 1) {
-					printf("--- Now testing: %s ---\n", targets[target_index].name);
-					
-					start_test_wave(&testers[target_index], params.buffer.len, cpu_freq);
-					targets[target_index].test_proc(&testers[target_index], &params);
-					
-					printf("\n");
+		u64 file_size = get_file_size(params.file_name);
+		if (file_size != 0) {
+			params.buffer = alloc_buffer(file_size);
+			if (is_valid(params.buffer)) {
+				u64 cpu_freq = estimate_cpu_timer_frequency();
+				
+				Repetition_Tester testers[array_count(targets)] = {};
+				for (;;) {
+					for (u32 target_index = 0; target_index < array_count(targets); target_index += 1) {
+						printf("--- Now testing: %s ---\n", targets[target_index].name);
+						
+						start_test_wave(&testers[target_index], params.buffer.len, cpu_freq);
+						targets[target_index].test_proc(&testers[target_index], &params);
+						
+						printf("\n");
+					}
 				}
+			} else {
+				fprintf(stderr, "Out of memory.\n");
+				exit_code = 1;
 			}
 		} else {
 			fprintf(stderr, "Cannot test on data with a size of 0.\n");

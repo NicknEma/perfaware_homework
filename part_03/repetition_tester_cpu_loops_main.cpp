@@ -30,11 +30,6 @@ extern "C" void read_bandw_256x2(u64, u8 *);
 
 #pragma comment(lib, "repetition_tester_cpu_loops.lib")
 
-struct Test_Buffer {
-	u64 len;
-	u8 *data;
-};
-
 enum Test_Pattern : u32 {
     Test_Pattern_ZEROS,
 	Test_Pattern_ONES,
@@ -151,51 +146,53 @@ static Test_Target targets[] = {
 #endif
 
 int main() {
-	Test_Buffer buffer = {};
-	buffer.len = 1*1024*1024*1024 + 8;
-	buffer.data = (u8 *) calloc(1, buffer.len);
-	// NOTE(ema): I use calloc so that I don't have to call fill_buffer()
-	// in case I'm not testing fill patterns.
+	int exit_code = 0;
 	
-	u64 cpu_freq = estimate_cpu_timer_frequency();
-	
-	Repetition_Tester testers[Test_Pattern_COUNT][array_count(targets)] = {};
-	for (;;) {
+	Buffer buffer = alloc_buffer(1*1024*1024*1024 + 8);
+	if (is_valid(buffer)) {
+		u64 cpu_freq = estimate_cpu_timer_frequency();
+		
+		Repetition_Tester testers[Test_Pattern_COUNT][array_count(targets)] = {};
+		for (;;) {
 #if TEST_FILL_PATTERNS
-		for (u32 pattern_type = 0; pattern_type < Test_Pattern_COUNT; pattern_type += 1) {
-			Test_Pattern pattern = (Test_Pattern)pattern_type;
-			fill_buffer(buffer, pattern);
+			for (u32 pattern_type = 0; pattern_type < Test_Pattern_COUNT; pattern_type += 1) {
+				Test_Pattern pattern = (Test_Pattern)pattern_type;
+				fill_buffer(buffer, pattern);
 #else
-			u32 pattern_type = 0;
-#endif
-			
-			for (int target_index = 0; target_index < array_count(targets); target_index += 1) {
-#if TEST_FILL_PATTERNS
-				printf("--- Now testing: %s%s%s ---\n", describe_pattern(pattern), " + ",
-					   targets[target_index].name);
-#else
-				printf("--- Now testing: %s ---\n", targets[target_index].name);
+				u32 pattern_type = 0;
 #endif
 				
-				Repetition_Tester *tester = &testers[pattern_type][target_index];
-				start_test_wave(tester, buffer.len, cpu_freq, 5);
-				
-				while (is_testing(tester)) {
-					begin_timed_block(tester);
-					{
-						targets[target_index].test_proc(buffer.len, buffer.data);
-					}
-					end_timed_block(tester);
+				for (int target_index = 0; target_index < array_count(targets); target_index += 1) {
+#if TEST_FILL_PATTERNS
+					printf("--- Now testing: %s%s%s ---\n", describe_pattern(pattern), " + ",
+						   targets[target_index].name);
+#else
+					printf("--- Now testing: %s ---\n", targets[target_index].name);
+#endif
 					
-					accumulate_byte_count(tester, buffer.len);
+					Repetition_Tester *tester = &testers[pattern_type][target_index];
+					start_test_wave(tester, buffer.len, cpu_freq, 5);
+					
+					while (is_testing(tester)) {
+						begin_timed_block(tester);
+						{
+							targets[target_index].test_proc(buffer.len, buffer.data);
+						}
+						end_timed_block(tester);
+						
+						accumulate_byte_count(tester, buffer.len);
+					}
+					
+					printf("\n");
 				}
-				
-				printf("\n");
-			}
 #if TEST_FILL_PATTERNS
-		}
+			}
 #endif
+		}
+	} else {
+		fprintf(stderr, "Out of memory.\n");
+		exit_code = 1;
 	}
 	
-	// return 0;
+	return exit_code;
 }
