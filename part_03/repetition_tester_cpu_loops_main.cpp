@@ -10,19 +10,6 @@ extern "C" void write_cmp_asm(u64, u8 *);
 extern "C" void write_dec_asm(u64, u8 *);
 extern "C" void write_skip_nop_asm(u64, u8 *);
 
-extern "C" void read_ports_8x1(u64, u8 *);
-extern "C" void read_ports_8x2(u64, u8 *);
-extern "C" void read_ports_8x3(u64, u8 *);
-extern "C" void read_ports_8x4(u64, u8 *);
-extern "C" void read_ports_1x2(u64, u8 *);
-extern "C" void read_ports_2x2(u64, u8 *);
-extern "C" void read_ports_4x2(u64, u8 *);
-
-extern "C" void write_ports_8x1(u64, u8 *);
-extern "C" void write_ports_8x2(u64, u8 *);
-extern "C" void write_ports_8x3(u64, u8 *);
-extern "C" void write_ports_8x4(u64, u8 *);
-
 #pragma comment(lib, "repetition_tester_cpu_loops.lib")
 
 enum Test_Pattern : u32 {
@@ -118,23 +105,6 @@ static Test_Target targets[] = {
 	"write_dec", write_dec_asm,
 #endif
 	"write_skip_nop", write_skip_nop_asm,
-	
-#if 0
-	"read_ports_8x1", read_ports_8x1,
-	"read_ports_8x2", read_ports_8x2,
-	"read_ports_8x3", read_ports_8x3,
-	"read_ports_8x4", read_ports_8x4,
-	"read_ports_1x2", read_ports_1x2,
-	"read_ports_2x2", read_ports_2x2,
-	"read_ports_4x2", read_ports_4x2,
-#endif
-	
-#if 1
-	"write_ports_8x1", write_ports_8x1,
-	"write_ports_8x2", write_ports_8x2,
-	"write_ports_8x3", write_ports_8x3,
-	"write_ports_8x4", write_ports_8x4,
-#endif
 };
 
 #if !defined(TEST_FILL_PATTERNS)
