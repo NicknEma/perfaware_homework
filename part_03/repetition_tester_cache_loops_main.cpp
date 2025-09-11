@@ -14,10 +14,11 @@ extern "C" void read_cache_masked(u64, u8 *, u64);
 typedef void Test_Proc(u64 count, u8 *data, u64 mask);
 
 struct Test_Target {
-	char *name;
+	char *label;
 	Test_Proc *test_proc;
 };
 
+#if 0
 static Test_Target targets[] = {
 #if 0
 	"read_cache_noskip", read_cache_noskip,
@@ -26,48 +27,77 @@ static Test_Target targets[] = {
 	
 	"read_cache_masked", read_cache_masked,
 };
+#else
+static Test_Target target = {"read_cache_masked", read_cache_masked};
+#endif
 
-static u64 masks[] = {
-	0,
-	0xFF,
-	0x1FF,
-	0x3FF,
-	0xFFFFFF,
-	0xFFFFFFFF,
-	~0ULL,
+// NOTE(ema): These are in bytes
+static u64 sizes[] = {
+	256ULL << 0,
+	256ULL << 1,
+	256ULL << 2,
+	256ULL << 3,
+	256ULL << 4,
+	256ULL << 5,
+	256ULL << 6,
+	256ULL << 7,
+	256ULL << 8,
+	256ULL << 9,
+	256ULL << 10,
+	256ULL << 11,
+	256ULL << 12,
+	256ULL << 13,
+	256ULL << 14,
+	256ULL << 15,
+	256ULL << 16,
+	256ULL << 17,
+	256ULL << 18,
+	256ULL << 19,
+	256ULL << 20,
+	256ULL << 21,
 };
 
 int main() {
 	int exit_code = 0;
 	
-	Buffer buffer = alloc_buffer(1*1024*1024*1024 + 8);
+	Buffer buffer = alloc_buffer(GIGABYTE + 8);
 	if (is_valid(buffer)) {
 		u64 cpu_freq = estimate_cpu_timer_frequency();
 		
-		Repetition_Tester testers[array_count(masks)][array_count(targets)] = {};
-		for (;;) {
-			for (u32 mask_index = 0; mask_index < array_count(masks); mask_index += 1) {
-				u64 mask = masks[mask_index];
-				
-				for (u32 target_index = 0; target_index < array_count(targets); target_index += 1) {
-					printf("--- Now testing: %s(0x%I64x) ---\n", targets[target_index].name, mask);
-					
-					Repetition_Tester *tester = &testers[mask_index][target_index];
-					start_test_wave(tester, buffer.len, cpu_freq, 5);
-					
-					while (is_testing(tester)) {
-						begin_timed_block(tester);
-						{
-							targets[target_index].test_proc(buffer.len, buffer.data, mask);
-						}
-						end_timed_block(tester);
-						
-						accumulate_byte_count(tester, buffer.len);
-					}
-					
-					printf("\n");
+		Repetition_Tester testers[array_count(sizes)] = {};
+		for (u32 size_index = 0; size_index < array_count(sizes); size_index += 1) {
+			u64 size = sizes[size_index];
+			u64 mask = size - 1;
+			
+			printf("--- Now testing: %s(%I64u, 0x%I64x) ---\n", target.label, size, size);
+			
+			Repetition_Tester *tester = &testers[size_index];
+			start_test_wave(tester, buffer.len, cpu_freq, 1);
+			
+			while (is_testing(tester)) {
+				begin_timed_block(tester);
+				{
+					target.test_proc(buffer.len, buffer.data, mask);
 				}
+				end_timed_block(tester);
+				
+				accumulate_byte_count(tester, buffer.len);
 			}
+			
+			printf("\n");
+		}
+		
+		printf("Region Size,gb/s\n");
+		for (u32 size_index = 0; size_index < array_count(sizes); size_index += 1) {
+			u64 size = sizes[size_index];
+			
+			Repetition_Tester *tester = &testers[size_index];
+			
+			f64 seconds = (f64)tester->min_time / (f64)cpu_freq;
+			f64 gigabyte = (1024.0f * 1024.0f * 1024.0f);
+			f64 bandwidth = (f64)tester->bytes_expected / (gigabyte * seconds);
+			
+			printf("%llu,%f\n", size, bandwidth);
 		}
 	} else {
 		fprintf(stderr, "Out of memory.\n");

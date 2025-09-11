@@ -64,11 +64,15 @@ read_cache_masked:
 	mov rax, r9
 	and rax, r8
 	add rax, rdx
-		vmovdqu ymm0, [rax +  0]
-		vmovdqu ymm0, [rax + 32]
-		vmovdqu ymm0, [rax + 64]
-		vmovdqu ymm0, [rax + 96]
-	add r9, 128
+		vmovdqu ymm0, [rax +   0]
+		vmovdqu ymm0, [rax +  32]
+		vmovdqu ymm0, [rax +  64]
+		vmovdqu ymm0, [rax +  96]
+		vmovdqu ymm0, [rax + 128]
+		vmovdqu ymm0, [rax + 160]
+		vmovdqu ymm0, [rax + 192]
+		vmovdqu ymm0, [rax + 224]
+	add r9, 256
 	cmp r9, rcx
 	jb .loop
 	ret

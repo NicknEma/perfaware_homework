@@ -11,3 +11,4 @@ shl.asm
 *.data
 part_01/palestine
 *.raddbg_project
+*.csv
