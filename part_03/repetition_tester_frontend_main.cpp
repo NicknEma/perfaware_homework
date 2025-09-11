@@ -12,6 +12,10 @@ extern "C" void write_nop(u64, u8 *);
 extern "C" void write_cmp(u64, u8 *);
 extern "C" void write_dec(u64, u8 *);
 
+extern "C" void nop3x1_loop(u64, u8 *);
+extern "C" void nop1x3_loop(u64, u8 *);
+extern "C" void nop1x9_loop(u64, u8 *);
+
 #pragma comment(lib, "repetition_tester_frontend.lib")
 
 static void write_forward(u64 count, u8 *data) {
@@ -26,11 +30,19 @@ struct Test_Target {
 };
 
 static Test_Target targets[] = {
+#if 0
 	"write_forward", write_forward,
 	"write_mov",     write_mov,
 	"write_nop",     write_nop,
 	"write_cmp",     write_cmp,
 	"write_dec",     write_dec,
+#endif
+	
+#if 1
+	"1 nop,  each 3 bytes", nop3x1_loop,
+	"3 nops, each 1 byte",  nop1x3_loop,
+	"9 nops, each 1 byte",  nop1x9_loop,
+#endif
 };
 
 int main() {
