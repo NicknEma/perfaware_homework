@@ -2,7 +2,6 @@ global write_mov_asm
 global write_nop_asm
 global write_cmp_asm
 global write_dec_asm
-global write_skip_nop_asm
 
 section .text
 
@@ -36,17 +35,4 @@ write_dec_asm:
 .loop:
 	dec rcx
 	jnz .loop
-	ret
-
-write_skip_nop_asm:
-	xor rax, rax
-.loop:
-	mov r10, [rdx + rax]
-	inc rax
-	test r10, 1
-	jnz .skip
-	nop
-.skip:
-	cmp rax, rcx
-	jb .loop
 	ret
