@@ -10,3 +10,4 @@ shl.asm
 *.i
 *.data
 part_01/palestine
+*.raddbg_project
