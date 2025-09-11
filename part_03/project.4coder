@@ -4,10 +4,8 @@ project_name = "Repetition Tester";
 patterns = {
 	"*.c",
 	"*.cpp",
-	"*.jai",
-	"*.odin",
-	"*.zig",
 	"*.h",
+	"*.asm",
 	"*.inc",
 	"*.bat",
 	"*.sh",
@@ -17,6 +15,9 @@ patterns = {
 
 blacklist_patterns = {
 	".*",
+	"*.rdi",
+	"*.rdbg",
+	"*.raddbg_project",
 };
 
 load_paths_base = {
