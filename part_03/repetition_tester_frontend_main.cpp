@@ -7,12 +7,12 @@
 typedef void Test_Proc(u64 count, u8 *data);
 
 static     void write_forward(u64, u8 *);
-extern "C" void write_mov_asm(u64, u8 *);
-extern "C" void write_nop_asm(u64, u8 *);
-extern "C" void write_cmp_asm(u64, u8 *);
-extern "C" void write_dec_asm(u64, u8 *);
+extern "C" void write_mov(u64, u8 *);
+extern "C" void write_nop(u64, u8 *);
+extern "C" void write_cmp(u64, u8 *);
+extern "C" void write_dec(u64, u8 *);
 
-#pragma comment(lib, "repetition_tester_cpu_loops.lib")
+#pragma comment(lib, "repetition_tester_frontend.lib")
 
 static void write_forward(u64 count, u8 *data) {
 	for (u64 byte_index = 0; byte_index < count; byte_index += 1) {
@@ -27,10 +27,10 @@ struct Test_Target {
 
 static Test_Target targets[] = {
 	"write_forward", write_forward,
-	"write_mov", write_mov_asm,
-	"write_nop", write_nop_asm,
-	"write_cmp", write_cmp_asm,
-	"write_dec", write_dec_asm,
+	"write_mov",     write_mov,
+	"write_nop",     write_nop,
+	"write_cmp",     write_cmp,
+	"write_dec",     write_dec,
 };
 
 int main() {

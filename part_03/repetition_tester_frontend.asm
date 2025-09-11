@@ -1,11 +1,11 @@
-global write_mov_asm
-global write_nop_asm
-global write_cmp_asm
-global write_dec_asm
+global write_mov
+global write_nop
+global write_cmp
+global write_dec
 
 section .text
 
-write_mov_asm:
+write_mov:
 	xor rax, rax
 .loop:
 	mov [rdx + rax], al
@@ -14,7 +14,7 @@ write_mov_asm:
 	jb .loop
 	ret
 
-write_nop_asm:
+write_nop:
 	xor rax, rax
 .loop:
 	db 0x0f, 0x1f, 0x00
@@ -23,7 +23,7 @@ write_nop_asm:
 	jb .loop
 	ret
 
-write_cmp_asm:
+write_cmp:
 	xor rax, rax
 .loop:
 	inc rax
@@ -31,7 +31,7 @@ write_cmp_asm:
 	jb .loop
 	ret
 
-write_dec_asm:
+write_dec:
 .loop:
 	dec rcx
 	jnz .loop
