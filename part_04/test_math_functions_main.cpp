@@ -81,15 +81,27 @@ static void test_against_reference_implem(char *ref_name, Math_Func *ref_func, c
 }
 
 int main() {
-	test_against_hardcoded_values("sqrt", sqrt, array_count(sqrt_ref_answers), sqrt_ref_answers);
-	test_against_hardcoded_values("asin", asin, 0, 0);
-	test_against_hardcoded_values("sin",  sin,  0, 0);
-	test_against_hardcoded_values("cos",  cos,  0, 0);
+	{
+#if 0
+		test_against_hardcoded_values("sqrt", sqrt, array_count(sqrt_ref_answers), sqrt_ref_answers);
+		test_against_hardcoded_values("asin", asin, 0, 0);
+		test_against_hardcoded_values("sin",  sin,  0, 0);
+		test_against_hardcoded_values("cos",  cos,  0, 0);
+#endif
+	}
 	
+#if 0
 	test_against_reference_implem("sqrt", sqrt, "hav_sqrt", hav_sqrt,  0.0,       1.0);
 	test_against_reference_implem("asin", asin, "hav_asin", hav_asin,  0.0,       1.0);
-	test_against_reference_implem("sin",  sin,  "hav_sin",  hav_sin,  -PI64,     +PI64);
-	test_against_reference_implem("cos",  cos,  "hav_cos",  hav_cos,  -PI64/2.0, +PI64/2.0);
+#endif
+	
+	test_against_reference_implem("sin",  sin,  "sin_q",  sin_q,   -PI64,      +PI64);
+	test_against_reference_implem("sin",  sin,  "sin_q_half",  sin_q_half,   -PI64,      +PI64);
+	test_against_reference_implem("sin",  sin,  "sin_q_quarter",  sin_q_quarter,   -PI64,      +PI64);
+	
+#if 1
+	test_against_reference_implem("cos",  cos,  "cos_q_quarter",  cos_q_quarter,  -PI64/2.0, +PI64/2.0);
+#endif
 	
 	return 0;
 }

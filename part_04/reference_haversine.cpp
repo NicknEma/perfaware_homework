@@ -1,14 +1,4 @@
 
-static f64 square_f64(f64 x) {
-    f64 result = x * x;
-    return result;
-}
-
-static f64 radians_from_degrees_f64(f64 degrees) {
-    f64 result = 0.01745329251994329577 * degrees;
-    return result;
-}
-
 #define EARTH_RADIUS 6372.8
 
 static f64 reference_haversine(f64 x0, f64 y0, f64 x1, f64 y1, f64 r) {
