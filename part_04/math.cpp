@@ -108,3 +108,41 @@ static f64 cos_q_quarter(f64 x) {
 	f64 y = sin_q_quarter(x);
 	return y;
 }
+
+static f64 sin_taylor_fast(f64 x, u32 max_exp) {
+	f64 sgn = -1;
+	f64 num = x;
+	f64 den = 1;
+	
+	f64 y = 1;
+	for (u32 exp = 1; exp <= max_exp; exp += 2) {
+		y += (sgn * num / den);
+		
+		num *= x*x;
+		den *= (f64)(exp+1) * (f64)(exp+2);
+		sgn *= -1;
+	}
+	
+	return y;
+}
+
+static u32 factorial(u32 n) {
+	u32 result = 1;
+	for (u32 i = 1; i <= n; i += 1) {
+		result *= i;
+	}
+	return result;
+}
+
+static f64 sin_taylor_slow(f64 x, u32 max_exp) {
+	f64 sgn = -1;
+	
+	f64 y = 1;
+	for (u32 exp = 1; exp <= max_exp; exp += 2) {
+		y += (sgn * pow(x, (f64)exp) / factorial(exp));
+		
+		sgn *= -1;
+	}
+	
+	return y;
+}
