@@ -160,16 +160,13 @@ static f64 sin_taylor_casey(f64 x, u32 max_exp) {
 }
 
 static f64 sin_taylor_horner(f64 x, u32 max_exp) {
+	f64 y = 0;
+	
 	f64 x2 = x*x;
-	if (max_exp % 2 == 0) max_exp -= 1;
-	
-	f64 y = sin_taylor_coefficient(max_exp);
-	while (max_exp >= 3) {
-		y = x2*y + sin_taylor_coefficient(max_exp - 2);
-		
-		max_exp -= 2;
+	for (u32 inv_exp = 1; inv_exp <= max_exp; inv_exp += 2) {
+		u32 exp = max_exp - (inv_exp - 1);
+		y = x2*y + sin_taylor_coefficient(exp);
 	}
-	
 	y *= x;
 	
 	return y;
