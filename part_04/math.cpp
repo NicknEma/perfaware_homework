@@ -138,3 +138,39 @@ static f64 sin_taylor_slow(f64 x, u32 max_exp) {
 	
 	return y;
 }
+
+static f64 sin_taylor_coefficient(u32 exp) {
+	f64 sign = (((exp - 1)/2) % 2) ? -1.0 : 1.0;
+    f64 coef = (sign / factorial(exp));
+	
+    return coef;
+}
+
+static f64 sin_taylor_casey(f64 x, u32 max_exp) {
+	f64 y = 0;
+	
+	f64 x2 = x*x;
+	f64 xpow = x;
+	for (u32 exp = 1; exp <= max_exp; exp += 2) {
+		y += xpow * sin_taylor_coefficient(exp);
+		xpow *= x2;
+	}
+	
+	return y;
+}
+
+static f64 sin_taylor_horner(f64 x, u32 max_exp) {
+	f64 x2 = x*x;
+	if (max_exp % 2 == 0) max_exp -= 1;
+	
+	f64 y = sin_taylor_coefficient(max_exp);
+	while (max_exp >= 3) {
+		y = x2*y + sin_taylor_coefficient(max_exp - 2);
+		
+		max_exp -= 2;
+	}
+	
+	y *= x;
+	
+	return y;
+}
