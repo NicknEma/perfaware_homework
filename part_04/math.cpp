@@ -171,3 +171,25 @@ static f64 sin_taylor_horner(f64 x, u32 max_exp) {
 	
 	return y;
 }
+
+static f64 sin_taylor_horner_fmadd(f64 x, u32 max_exp) {
+	f64 x2 = x*x;
+	
+	__m128d sse_y  = {};
+	__m128d sse_x2 = _mm_set_sd(x2);
+	for (u32 inv_exp = 1; inv_exp <= max_exp; inv_exp += 2) {
+		u32 exp  = max_exp - (inv_exp - 1);
+		f64 coef = sin_taylor_coefficient(exp);
+		
+		__m128d sse_coef = _mm_set_sd(coef);
+#if 0
+		sse_y = _mm_fmadd_sd(sse_x2, sse_y, sse_coef);
+#else
+		sse_y = _mm_add_sd(_mm_mul_sd(sse_x2, sse_y), sse_coef);
+#endif
+	}
+	f64 y = _mm_cvtsd_f64(sse_y);
+	y *= x;
+	
+	return y;
+}

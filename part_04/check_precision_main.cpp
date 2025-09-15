@@ -107,6 +107,12 @@ int main() {
 		}
 	}
 	
+	while (try_start_precision_test(&tester, -PI64, PI64)) {
+		for (u32 exp = 3; exp < 31; exp += 2) {
+			compare_outputs(&tester, sin(tester.input_value), sin_taylor_horner_fmadd(tester.input_value, exp), "sin_taylor_horner_fmadd(%u)", exp);
+		}
+	}
+	
 	print_results(&tester);
 	
 	return 0;
