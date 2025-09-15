@@ -102,11 +102,11 @@ static f64 cos_q_quarter(f64 x) {
 }
 
 static f64 sin_taylor_fast(f64 x, u32 max_exp) {
-	f64 sgn = -1;
+	f64 sgn = 1;
 	f64 num = x;
 	f64 den = 1;
 	
-	f64 y = 1;
+	f64 y = 0;
 	for (u32 exp = 1; exp <= max_exp; exp += 2) {
 		y += (sgn * num / den);
 		
@@ -127,9 +127,9 @@ static u32 factorial(u32 n) {
 }
 
 static f64 sin_taylor_slow(f64 x, u32 max_exp) {
-	f64 sgn = -1;
+	f64 sgn = 1;
 	
-	f64 y = 1;
+	f64 y = 0;
 	for (u32 exp = 1; exp <= max_exp; exp += 2) {
 		y += (sgn * pow(x, (f64)exp) / factorial(exp));
 		

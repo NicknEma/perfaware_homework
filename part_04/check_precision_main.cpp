@@ -83,6 +83,20 @@ int main() {
 		compare_outputs(&tester, cos(tester.input_value), cos_q_quarter(tester.input_value), "cos_q_quarter");
 	}
 	
+	while (try_start_precision_test(&tester, -PI64, PI64)) {
+		compare_outputs(&tester, sin(tester.input_value), sin_taylor_fast(tester.input_value,  3), "sin_taylor_fast( 3)");
+		compare_outputs(&tester, sin(tester.input_value), sin_taylor_fast(tester.input_value,  5), "sin_taylor_fast( 5)");
+		compare_outputs(&tester, sin(tester.input_value), sin_taylor_fast(tester.input_value,  7), "sin_taylor_fast( 7)");
+		compare_outputs(&tester, sin(tester.input_value), sin_taylor_fast(tester.input_value, 15), "sin_taylor_fast(15)");
+	}
+	
+	while (try_start_precision_test(&tester, -PI64, PI64)) {
+		compare_outputs(&tester, sin(tester.input_value), sin_taylor_slow(tester.input_value,  3), "sin_taylor_slow( 3)");
+		compare_outputs(&tester, sin(tester.input_value), sin_taylor_slow(tester.input_value,  5), "sin_taylor_slow( 5)");
+		compare_outputs(&tester, sin(tester.input_value), sin_taylor_slow(tester.input_value,  7), "sin_taylor_slow( 7)");
+		compare_outputs(&tester, sin(tester.input_value), sin_taylor_slow(tester.input_value, 15), "sin_taylor_slow(15)");
+	}
+	
 	print_results(&tester);
 	
 	return 0;
