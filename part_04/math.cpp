@@ -118,10 +118,10 @@ static f64 sin_taylor_fast(f64 x, u32 max_exp) {
 	return y;
 }
 
-static u32 factorial(u32 n) {
-	u32 result = 1;
+static f64 factorial(u32 n) {
+	f64 result = 1;
 	for (u32 i = 1; i <= n; i += 1) {
-		result *= i;
+		result *= (f64)i;
 	}
 	return result;
 }
