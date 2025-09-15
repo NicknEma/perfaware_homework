@@ -93,7 +93,7 @@ static f64 sin_q_quarter(f64 x) {
 
 static f64 cos_q_quarter(f64 x) {
 	if (x > PI64/2) {
-		x -= (PI64 + PI64/2);
+		x -= (PI64 + PI64);
 	}
 	x += PI64/2;
 	

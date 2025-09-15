@@ -80,7 +80,7 @@ int main() {
 	}
 	
 	while (try_start_precision_test(&tester, -PI64, PI64)) {
-		compare_outputs(&tester, sin(tester.input_value), cos_q_quarter(tester.input_value), "cos_q_quarter");
+		compare_outputs(&tester, cos(tester.input_value), cos_q_quarter(tester.input_value), "cos_q_quarter");
 	}
 	
 	print_results(&tester);
