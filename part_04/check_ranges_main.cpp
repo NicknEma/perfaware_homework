@@ -1,6 +1,8 @@
 #include "shared.h"
+#include "math.h"
 
 #include "shared.cpp"
+#include "math.cpp"
 #include "reference_haversine.cpp"
 
 struct Func_Range {

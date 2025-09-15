@@ -1,10 +1,3 @@
-#if _MSC_VER
-#include "intrin.h"
-#else
-#include "x86intrin.h"
-#endif
-
-#define PI64 3.14159265358979323846264338327950288419716939937510582097494459230781640628
 
 static f64 square_f64(f64 x) {
     f64 result = x * x;
@@ -44,11 +37,10 @@ static f64 radians_from_degrees_f64(f64 degrees) {
     return result;
 }
 
-static f64 hav_sqrt(f64 x) {
-	__m128d mx = _mm_set_sd(x);
-	__m128d mz = _mm_set_sd(0);
-	__m128d my = _mm_sqrt_sd(mz, mx);
-	f64 y = _mm_cvtsd_f64(my);
+static f64 sqrt_sse(f64 x) {
+	__m128d sse_x = _mm_set_sd(x);
+	__m128d sse_y = _mm_sqrt_sd(sse_x, sse_x);
+	f64 y = _mm_cvtsd_f64(sse_y);
 	return y;
 }
 

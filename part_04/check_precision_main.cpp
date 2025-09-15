@@ -1,7 +1,10 @@
 #include "shared.h"
+#include "math.h"
+#include "math_check.h"
 
 #include "shared.cpp"
 #include "math.cpp"
+#include "math_check.cpp"
 #include "reference_haversine.cpp"
 
 //
@@ -11,36 +14,6 @@
 // comparing them against the reference ones.
 //
 
-typedef f64 Math_Func(f64);
-
-struct Reference_Answer {
-	f64 x, y;
-};
-
-static void print_spaces(u32 space_count) {
-	for (u32 space_index = 0; space_index < space_count; space_index += 1) {
-		printf(" ");
-	}
-}
-
-static void test_against_hardcoded_values(char *name, Math_Func *func, u32 ref_count, Reference_Answer *refs) {
-	printf("%s:\n", name);
-	for (u32 ref_index = 0; ref_index < ref_count; ref_index += 1) {
-		f64 ref_x = refs[ref_index].x;
-		f64 ref_y = refs[ref_index].y;
-		
-		u32 space_count = printf("f(%+.24f) ", ref_x);
-		printf("= %+.24f [reference]\n", ref_y);
-		
-		f64 got_y = func(ref_x);
-		f64 error = fabs(got_y - ref_y);
-		
-		print_spaces(space_count);
-		printf("= %+.24f (off by %.24f) [%s]\n", got_y, error, name);
-	}
-	printf("\n");
-}
-
 static Reference_Answer sqrt_ref_answers[] = {
 	{0.00, 0.0},
 	{0.25, 0.5},
@@ -49,6 +22,7 @@ static Reference_Answer sqrt_ref_answers[] = {
 	{1.00, 1.0},
 };
 
+#if 0
 static void test_against_reference_implem(char *ref_name, Math_Func *ref_func, char *name, Math_Func *func,
 										  f64 domain_min, f64 domain_max, u32 sample_count = 100000) {
 	
@@ -79,6 +53,7 @@ static void test_against_reference_implem(char *ref_name, Math_Func *ref_func, c
 	
 	printf("\n");
 }
+#endif
 
 int main() {
 	{
@@ -90,18 +65,25 @@ int main() {
 #endif
 	}
 	
-#if 0
-	test_against_reference_implem("sqrt", sqrt, "hav_sqrt", hav_sqrt,  0.0,       1.0);
-	test_against_reference_implem("asin", asin, "hav_asin", hav_asin,  0.0,       1.0);
-#endif
+	Math_Tester tester = {};
 	
-	test_against_reference_implem("sin",  sin,  "sin_q",  sin_q,   -PI64,      +PI64);
-	test_against_reference_implem("sin",  sin,  "sin_q_half",  sin_q_half,   -PI64,      +PI64);
-	test_against_reference_implem("sin",  sin,  "sin_q_quarter",  sin_q_quarter,   -PI64,      +PI64);
+	while (try_start_precision_test(&tester, -PI64, PI64)) {
+		compare_outputs(&tester, sin(tester.input_value), sin_q(tester.input_value), "sin_q");
+	}
 	
-#if 1
-	test_against_reference_implem("cos",  cos,  "cos_q_quarter",  cos_q_quarter,  -PI64/2.0, +PI64/2.0);
-#endif
+	while (try_start_precision_test(&tester, -PI64, PI64)) {
+		compare_outputs(&tester, sin(tester.input_value), sin_q_half(tester.input_value), "sin_q_half");
+	}
+	
+	while (try_start_precision_test(&tester, -PI64, PI64)) {
+		compare_outputs(&tester, sin(tester.input_value), sin_q_quarter(tester.input_value), "sin_q_quarter");
+	}
+	
+	while (try_start_precision_test(&tester, -PI64, PI64)) {
+		compare_outputs(&tester, sin(tester.input_value), cos_q_quarter(tester.input_value), "cos_q_quarter");
+	}
+	
+	print_results(&tester);
 	
 	return 0;
 }

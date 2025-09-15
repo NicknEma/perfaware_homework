@@ -25,6 +25,8 @@ typedef  int64_t i64;
 typedef    float f32;
 typedef   double f64;
 
+typedef      u32 b32;
+
 #define KILOBYTE (1024)
 #define MEGABYTE (1024 * KILOBYTE)
 #define GIGABYTE (1024 * MEGABYTE)
