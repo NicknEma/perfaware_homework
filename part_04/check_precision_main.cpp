@@ -84,35 +84,27 @@ int main() {
 	}
 	
 	while (try_start_precision_test(&tester, -PI64, PI64)) {
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_fast(tester.input_value,  3), "sin_taylor_fast( 3)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_fast(tester.input_value,  5), "sin_taylor_fast( 5)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_fast(tester.input_value,  7), "sin_taylor_fast( 7)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_fast(tester.input_value, 15), "sin_taylor_fast(15)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_fast(tester.input_value, 31), "sin_taylor_fast(31)");
+		for (u32 exp = 3; exp < 31; exp += 2) {
+			compare_outputs(&tester, sin(tester.input_value), sin_taylor_fast(tester.input_value, exp), "sin_taylor_fast(%u)", exp);
+		}
 	}
 	
 	while (try_start_precision_test(&tester, -PI64, PI64)) {
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_slow(tester.input_value,  3), "sin_taylor_slow( 3)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_slow(tester.input_value,  5), "sin_taylor_slow( 5)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_slow(tester.input_value,  7), "sin_taylor_slow( 7)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_slow(tester.input_value, 15), "sin_taylor_slow(15)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_slow(tester.input_value, 31), "sin_taylor_slow(31)");
+		for (u32 exp = 3; exp < 31; exp += 2) {
+			compare_outputs(&tester, sin(tester.input_value), sin_taylor_slow(tester.input_value, exp), "sin_taylor_slow(%u)", exp);
+		}
 	}
 	
 	while (try_start_precision_test(&tester, -PI64, PI64)) {
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_casey(tester.input_value,  3), "sin_taylor_casey( 3)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_casey(tester.input_value,  5), "sin_taylor_casey( 5)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_casey(tester.input_value,  7), "sin_taylor_casey( 7)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_casey(tester.input_value, 15), "sin_taylor_casey(15)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_casey(tester.input_value, 31), "sin_taylor_casey(31)");
+		for (u32 exp = 3; exp < 31; exp += 2) {
+			compare_outputs(&tester, sin(tester.input_value), sin_taylor_casey(tester.input_value, exp), "sin_taylor_casey(%u)", exp);
+		}
 	}
 	
 	while (try_start_precision_test(&tester, -PI64, PI64)) {
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_horner(tester.input_value,  3), "sin_taylor_horner( 3)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_horner(tester.input_value,  5), "sin_taylor_horner( 5)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_horner(tester.input_value,  7), "sin_taylor_horner( 7)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_horner(tester.input_value, 15), "sin_taylor_horner(15)");
-		compare_outputs(&tester, sin(tester.input_value), sin_taylor_horner(tester.input_value, 31), "sin_taylor_horner(31)");
+		for (u32 exp = 3; exp < 31; exp += 2) {
+			compare_outputs(&tester, sin(tester.input_value), sin_taylor_horner(tester.input_value, exp), "sin_taylor_horner(%u)", exp);
+		}
 	}
 	
 	print_results(&tester);
