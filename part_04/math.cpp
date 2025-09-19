@@ -239,3 +239,23 @@ static f64 sin_ce(f64 x) {
 	
 	return y;
 }
+
+static f64 asin_ce(f64 x) {
+	// NOTE(ema): Approximate asin(x) using 11 minimax coefficients
+	f64 x2 = x*x;
+	
+	f64 y = 0x1.699a7715830d2p-3;
+	y = fma(y, x2, -0x1.2deb335977b56p-2);
+	y = fma(y, x2, 0x1.103aa8bb00a4ep-2);
+	y = fma(y, x2, -0x1.ba657aa72abeep-4);
+	y = fma(y, x2, 0x1.b627b3be92bd4p-5);
+	y = fma(y, x2, 0x1.0076fe3314273p-6);
+	y = fma(y, x2, 0x1.fe5b240c320ebp-6);
+	y = fma(y, x2, 0x1.6d4c8c3659p-5);
+	y = fma(y, x2, 0x1.3334fd1dd69f5p-4);
+	y = fma(y, x2, 0x1.5555525723f64p-3);
+	y = fma(y, x2, 0x1.0000000034db9p0);
+	y *= x;
+	
+	return y;
+}
