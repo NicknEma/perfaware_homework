@@ -194,6 +194,19 @@ static f64 sin_taylor_horner_fmadd(f64 x, u32 max_exp) {
 	return y;
 }
 
+static f64 sin_taylor_horner_fma(f64 x, u32 max_exp) {
+	f64 y = 0;
+	
+	f64 x2 = x*x;
+	for (u32 inv_exp = 1; inv_exp <= max_exp; inv_exp += 2) {
+		u32 exp = max_exp - (inv_exp - 1);
+		y = fma(y, x2, sin_taylor_coefficient(exp));
+	}
+	y *= x;
+	
+	return y;
+}
+
 static f64 sin_coefficients_taylor(f64 x, u32 max_exp) {
 	f64 y = 0;
 	f64 x2 = x*x;
