@@ -116,17 +116,21 @@ int main() {
 	}
 #endif
 	
-	while (try_start_precision_test(&tester, 0, PI64/2)) {
-		for (u32 exp = 3; exp < 31; exp += 2) {
-			compare_outputs(&tester, sin(tester.input_value), sin_coefficients_taylor(tester.input_value, exp), "sin_coefficients_taylor(%u)", exp);
+#if 1
+	for (u32 count = 2; count < min(array_count(SineRadiansC_Taylor), array_count(SineRadiansC_MFTWP)); count += 1) {
+		while (try_start_precision_test(&tester, 0, PI64/2)) {
+			f64 expected = sin(tester.input_value);
+			
+			if (count < array_count(SineRadiansC_Taylor)) {
+				compare_outputs(&tester, expected, sin_coefficients_table(tester.input_value, SineRadiansC_Taylor, count), "taylor(%u)", count);
+			}
+			
+			if (count < array_count(SineRadiansC_MFTWP)) {
+				compare_outputs(&tester, expected, sin_coefficients_table(tester.input_value, SineRadiansC_MFTWP[count], count), "mftwp(%u)", count);
+			}
 		}
 	}
-	
-	while (try_start_precision_test(&tester, 0, PI64/2)) {
-		for (u32 exp = 3; exp < 31; exp += 2) {
-			compare_outputs(&tester, sin(tester.input_value), sin_coefficients_mftwp(tester.input_value, exp), "sin_coefficients_mftwp(%u)", exp);
-		}
-	}
+#endif
 	
 	print_results(&tester);
 	

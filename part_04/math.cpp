@@ -207,32 +207,15 @@ static f64 sin_taylor_horner_fma(f64 x, u32 max_exp) {
 	return y;
 }
 
-static f64 sin_coefficients_taylor(f64 x, u32 max_exp) {
-	f64 y = 0;
+static f64 sin_coefficients_table(f64 x, f64 *values, u32 count) {
+	f64 y = values[count - 1];
+	
 	f64 x2 = x*x;
-	f64 xpow = x;
-	
-	u32 max_index = max_exp / 2;
-	for (u32 exp_index = 0; exp_index < min(max_index, array_count(SineRadiansC_Taylor)); exp_index += 1) {
-		y += xpow * SineRadiansC_Taylor[exp_index];
-		xpow *= x2;
+	for (u32 index = count - 1; index != 0; index -= 1) {
+		f64 c = values[index - 1];
+		y = fma(y, x2, c);
 	}
-	
-	return y;
-}
-
-static f64 sin_coefficients_mftwp(f64 x, u32 max_exp) {
-	f64 y = 0;
-	f64 x2 = x*x;
-	f64 xpow = x;
-	
-	u32 max_exp_index = max_exp / 2;
-	u32 array_index = min(max_exp, array_count(SineRadiansC_MFTWP)-1);
-	f64 *array = SineRadiansC_MFTWP[array_index];
-	for (u32 exp_index = 0; exp_index < min(max_exp_index, array_count(SineRadiansC_MFTWP[0])); exp_index += 1) {
-		y += xpow * array[exp_index];
-		xpow *= x2;
-	}
+	y *= x;
 	
 	return y;
 }
