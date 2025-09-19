@@ -305,3 +305,70 @@ static f64 asin_ce_ext_r(f64 x) {
 	
 	return y;
 }
+
+///////////////////////////
+// Finalized math functions
+
+static f64 sqrt_hv(f64 x) {
+	__m128d sse_x = _mm_set_sd(x);
+	__m128d sse_y = _mm_sqrt_sd(sse_x, sse_x);
+	f64 y = _mm_cvtsd_f64(sse_y);
+	return y;
+}
+
+static f64 sin_hv(f64 x) {
+	// NOTE(ema): The coefficients were donated by Demetri Spanos.
+	f64 t = fabs(x);
+	if (t > PI64/2) t = (PI64 - t);
+	
+	f64 t2 = t*t;
+	
+	f64 y = 0x1.883c1c5deffbep-49;
+	y = fma(y, t2, -0x1.ae43dc9bf8ba7p-41);
+	y = fma(y, t2, 0x1.6123ce513b09fp-33);
+	y = fma(y, t2, -0x1.ae6454d960ac4p-26);
+	y = fma(y, t2, 0x1.71de3a52aab96p-19);
+	y = fma(y, t2, -0x1.a01a01a014eb6p-13);
+	y = fma(y, t2, 0x1.11111111110c9p-7);
+	y = fma(y, t2, -0x1.5555555555555p-3);
+	y = fma(y, t2, 0x1p0);
+	y *= t;
+	
+	if (x < 0) y = -y;
+	
+	return y;
+}
+
+static f64 cos_hv(f64 x) {
+	f64 y = sin_hv(x + PI64/2);
+	return y;
+}
+
+static f64 asin_hv(f64 x) {
+	// NOTE(ema): The coefficients were donated by Demetri Spanos.
+	f64 t = x;
+	if (x > ONE_OVER_SQRT2) {
+		t = sqrt_sse(1 - square_f64(x));
+	}
+	
+	f64 t2 = t*t;
+	
+	f64 y = 0x1.699a7715830d2p-3;
+	y = fma(y, t2, -0x1.2deb335977b56p-2);
+	y = fma(y, t2, 0x1.103aa8bb00a4ep-2);
+	y = fma(y, t2, -0x1.ba657aa72abeep-4);
+	y = fma(y, t2, 0x1.b627b3be92bd4p-5);
+	y = fma(y, t2, 0x1.0076fe3314273p-6);
+	y = fma(y, t2, 0x1.fe5b240c320ebp-6);
+	y = fma(y, t2, 0x1.6d4c8c3659p-5);
+	y = fma(y, t2, 0x1.3334fd1dd69f5p-4);
+	y = fma(y, t2, 0x1.5555525723f64p-3);
+	y = fma(y, t2, 0x1.0000000034db9p0);
+	y *= t;
+	
+	if (x > ONE_OVER_SQRT2) {
+		y = (PI64/2) - y;
+	}
+	
+	return y;
+}

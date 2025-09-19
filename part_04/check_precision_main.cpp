@@ -155,12 +155,30 @@ int main() {
 	}
 #endif
 	
-#if 1
+#if 0
 	while (try_start_precision_test(&tester, 0, 1)) {
 		f64 expected = asin(tester.input_value);
 		
 		compare_outputs(&tester, expected, asin_ce_ext_i(tester.input_value), "ce_i");
 		compare_outputs(&tester, expected, asin_ce_ext_r(tester.input_value), "ce_r");
+	}
+#endif
+	
+#if 1
+	while (try_start_precision_test(&tester, -PI64, PI64)) {
+		compare_outputs(&tester, sin(tester.input_value), sin_hv(tester.input_value), "sin_hv");
+	}
+	
+	while (try_start_precision_test(&tester, -PI64/2, PI64/2)) {
+		compare_outputs(&tester, cos(tester.input_value), cos_hv(tester.input_value), "cos_hv");
+	}
+	
+	while (try_start_precision_test(&tester, 0, 1)) {
+		compare_outputs(&tester, asin(tester.input_value), asin_hv(tester.input_value), "asin_hv");
+	}
+	
+	while (try_start_precision_test(&tester, 0, 1)) {
+		compare_outputs(&tester, sqrt(tester.input_value), sqrt_hv(tester.input_value), "sqrt_hv");
 	}
 #endif
 	

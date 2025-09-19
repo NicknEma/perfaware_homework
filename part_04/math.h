@@ -33,4 +33,12 @@ static f64 asin_ce(f64 x);
 static f64 asin_ce_ext_i(f64 x);
 static f64 asin_ce_ext_r(f64 x);
 
+///////////////////////////
+// Finalized math functions
+
+static f64 sqrt_hv(f64 x);
+static f64 sin_hv(f64 x);
+static f64 cos_hv(f64 x);
+static f64 asin_hv(f64 x);
+
 #endif
