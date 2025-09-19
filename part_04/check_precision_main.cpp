@@ -122,6 +122,12 @@ int main() {
 		}
 	}
 	
+	while (try_start_precision_test(&tester, 0, PI64/2)) {
+		for (u32 exp = 3; exp < 31; exp += 2) {
+			compare_outputs(&tester, sin(tester.input_value), sin_coefficients_mftwp(tester.input_value, exp), "sin_coefficients_mftwp(%u)", exp);
+		}
+	}
+	
 	print_results(&tester);
 	
 	return 0;

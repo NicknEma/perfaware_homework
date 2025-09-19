@@ -207,3 +207,19 @@ static f64 sin_coefficients_taylor(f64 x, u32 max_exp) {
 	
 	return y;
 }
+
+static f64 sin_coefficients_mftwp(f64 x, u32 max_exp) {
+	f64 y = 0;
+	f64 x2 = x*x;
+	f64 xpow = x;
+	
+	u32 max_exp_index = max_exp / 2;
+	u32 array_index = min(max_exp, array_count(SineRadiansC_MFTWP)-1);
+	f64 *array = SineRadiansC_MFTWP[array_index];
+	for (u32 exp_index = 0; exp_index < min(max_exp_index, array_count(SineRadiansC_MFTWP[0])); exp_index += 1) {
+		y += xpow * array[exp_index];
+		xpow *= x2;
+	}
+	
+	return y;
+}
