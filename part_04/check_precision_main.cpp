@@ -115,7 +115,7 @@ int main() {
 	}
 #endif
 	
-#if 1
+#if 0
 	for (u32 count = 2; count < min(array_count(SineRadiansC_Taylor), array_count(SineRadiansC_MFTWP)); count += 1) {
 		while (try_start_precision_test(&tester, 0, PI64/2)) {
 			f64 expected = sin(tester.input_value);
@@ -126,6 +126,24 @@ int main() {
 			
 			if (count < array_count(SineRadiansC_MFTWP)) {
 				compare_outputs(&tester, expected, sin_coefficients_table(tester.input_value, SineRadiansC_MFTWP[count], count), "mftwp(%u)", count);
+			}
+		}
+	}
+#endif
+	
+#define ONE_OVER_SQRT2 0.707106781186547524400844362104849039284835937688474036588339868995366239231053519425193767163820786367506923115456148512462418027925368606322061
+	
+#if 1
+	for (u32 count = 2; count < min(array_count(ArcsineRadiansC_Taylor), array_count(ArcsineRadiansC_MFTWP)); count += 1) {
+		while (try_start_precision_test(&tester, 0, ONE_OVER_SQRT2)) {
+			f64 expected = asin(tester.input_value);
+			
+			if (count < array_count(SineRadiansC_Taylor)) {
+				compare_outputs(&tester, expected, sin_coefficients_table(tester.input_value, ArcsineRadiansC_Taylor, count), "taylor(%u)", count);
+			}
+			
+			if (count < array_count(SineRadiansC_MFTWP)) {
+				compare_outputs(&tester, expected, sin_coefficients_table(tester.input_value, ArcsineRadiansC_MFTWP[count], count), "mftwp(%u)", count);
 			}
 		}
 	}
