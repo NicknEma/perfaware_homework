@@ -1,6 +1,7 @@
 #include "shared.h"
 #include "math.h"
 #include "math_check.h"
+#include "sine_coefficients.h"
 
 #include "shared.cpp"
 #include "math.cpp"
@@ -67,6 +68,7 @@ int main() {
 	
 	Math_Tester tester = {};
 	
+#if 0
 	while (try_start_precision_test(&tester, -PI64, PI64)) {
 		compare_outputs(&tester, sin(tester.input_value), sin_q(tester.input_value), "sin_q");
 	}
@@ -110,6 +112,13 @@ int main() {
 	while (try_start_precision_test(&tester, -PI64, PI64)) {
 		for (u32 exp = 3; exp < 31; exp += 2) {
 			compare_outputs(&tester, sin(tester.input_value), sin_taylor_horner_fmadd(tester.input_value, exp), "sin_taylor_horner_fmadd(%u)", exp);
+		}
+	}
+#endif
+	
+	while (try_start_precision_test(&tester, 0, PI64/2)) {
+		for (u32 exp = 3; exp < 31; exp += 2) {
+			compare_outputs(&tester, sin(tester.input_value), sin_coefficients_taylor(tester.input_value, exp), "sin_coefficients_taylor(%u)", exp);
 		}
 	}
 	

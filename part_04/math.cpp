@@ -193,3 +193,17 @@ static f64 sin_taylor_horner_fmadd(f64 x, u32 max_exp) {
 	
 	return y;
 }
+
+static f64 sin_coefficients_taylor(f64 x, u32 max_exp) {
+	f64 y = 0;
+	f64 x2 = x*x;
+	f64 xpow = x;
+	
+	u32 max_index = max_exp / 2;
+	for (u32 exp_index = 0; exp_index < min(max_index, array_count(SineRadiansC_Taylor)); exp_index += 1) {
+		y += xpow * SineRadiansC_Taylor[exp_index];
+		xpow *= x2;
+	}
+	
+	return y;
+}
