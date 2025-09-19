@@ -1,4 +1,6 @@
 
+#include "coefficients.inl"
+
 static f64 square_f64(f64 x) {
     f64 result = x * x;
     return result;

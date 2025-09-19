@@ -1,5 +1,5 @@
-#ifndef SINE_COEFFICIENTS_H
-#define SINE_COEFFICIENTS_H
+#ifndef COEFFICIENTS_H
+#define COEFFICIENTS_H
 
 static f64 SineRadiansC_Taylor[16] = {
     1.0,
@@ -40,4 +40,3 @@ static f64 SineRadiansC_MFTWP[][11] = {
     {0x1p0, -0x1.5555555555555p-3, 0x1.11111111110dp-7, -0x1.a01a01a01559ap-13, 0x1.71de3a52ad36dp-19, -0x1.ae64549aa7ca9p-26, 0x1.612392f66fdcdp-33, -0x1.ae11556cad6c4p-41, 0x1.71744c339ad03p-49, 0x1.52947c90f8199p-55, -0x1.ff1898c107cfap-59},
 };
 
-#endif

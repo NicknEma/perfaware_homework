@@ -1,7 +1,6 @@
 #include "shared.h"
 #include "math.h"
 #include "math_check.h"
-#include "sine_coefficients.h"
 
 #include "shared.cpp"
 #include "math.cpp"
