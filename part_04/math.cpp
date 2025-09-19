@@ -2,13 +2,13 @@
 #include "coefficients.inl"
 
 static f64 square_f64(f64 x) {
-    f64 result = x * x;
-    return result;
+    f64 y = x * x;
+    return y;
 }
 
 __declspec(noinline) static f64 cvt_01_to_neg1pos1(f64 b) {
-	f64 result = 2*b - 1;
-	return result;
+	f64 y = 2*b - 1;
+	return y;
 }
 
 __declspec(noinline) static f64 sign_f64(f64 x) {
@@ -40,26 +40,22 @@ static f64 radians_from_degrees_f64(f64 degrees) {
 }
 
 static f64 sqrt_sse(f64 x) {
+	// NOTE(ema): Uses intrinsics to generate a sqrt instruction.
 	__m128d sse_x = _mm_set_sd(x);
 	__m128d sse_y = _mm_sqrt_sd(sse_x, sse_x);
 	f64 y = _mm_cvtsd_f64(sse_y);
 	return y;
 }
 
-static f64 hav_asin(f64 x) {
-	f64 y = x;
-	return y;
-}
-
 static f64 sin_q(f64 x) {
-	// NOTE(ema): Approximates sin in the [0, PI] range with a quadratic.
+	// NOTE(ema): Approximates sin(x) in the [0, PI] range with a quadratic.
 	
 	f64 y = (-4/(PI64*PI64))*square_f64(x) + (4/PI64)*x;
 	return y;
 }
 
 static f64 sin_q_half(f64 x) {
-	// NOTE(ema): Approximates sin in the [0, PI] range with a quadratic and
+	// NOTE(ema): Approximates sin(x) in the [0, PI] range with a quadratic and
 	// then extends the result to the [-PI, PI] range.
 	f64 x2 = square_f64(x);
 	f64 a = -4/(PI64*PI64);
@@ -71,7 +67,8 @@ static f64 sin_q_half(f64 x) {
 }
 
 static f64 sin_q_quarter(f64 x) {
-	// NOTE(ema): More range reduction
+	// NOTE(ema): Approximates sin(x) in the [0, PI/2] range with a quadratic and
+	// then extends the result to the [-PI, PI] range.
 	f64 x2 = square_f64(x);
 	f64 a = -4/(PI64*PI64);
 	f64 b = 4/PI64;
@@ -94,6 +91,8 @@ static f64 sin_q_quarter(f64 x) {
 }
 
 static f64 cos_q_quarter(f64 x) {
+	// NOTE(ema): Approximates cos(x) in the range [-PI, PI] by conditioning the
+	// input to be an input for sin(x).
 	if (x > PI64/2) {
 		x -= (PI64 + PI64);
 	}
@@ -104,6 +103,7 @@ static f64 cos_q_quarter(f64 x) {
 }
 
 static f64 sin_taylor_fast(f64 x, u32 max_exp) {
+	// NOTE(ema): Approximates sin(x) in the range [0, PI/2] using a taylor series.
 	f64 sgn = 1;
 	f64 num = x;
 	f64 den = 1;
@@ -129,6 +129,7 @@ static f64 factorial(u32 n) {
 }
 
 static f64 sin_taylor_slow(f64 x, u32 max_exp) {
+	// NOTE(ema): Approximates sin(x) in the range [0, PI/2] using a taylor series.
 	f64 sgn = 1;
 	
 	f64 y = 0;
@@ -142,6 +143,8 @@ static f64 sin_taylor_slow(f64 x, u32 max_exp) {
 }
 
 static f64 sin_taylor_coefficient(u32 exp) {
+	// NOTE(ema): Computes a coefficient for the sine taylor expansion, given the
+	// odd exponent.
 	f64 sign = (((exp - 1)/2) % 2) ? -1.0 : 1.0;
     f64 coef = (sign / factorial(exp));
 	
@@ -149,6 +152,8 @@ static f64 sin_taylor_coefficient(u32 exp) {
 }
 
 static f64 sin_taylor_casey(f64 x, u32 max_exp) {
+	// NOTE(ema): Approximates sin(x) in the range [0, PI/2] using a taylor series.
+	// The loop is structured the way Casey did it, isolating the coefficients.
 	f64 y = 0;
 	
 	f64 x2 = x*x;
@@ -162,6 +167,8 @@ static f64 sin_taylor_casey(f64 x, u32 max_exp) {
 }
 
 static f64 sin_taylor_horner(f64 x, u32 max_exp) {
+	// NOTE(ema): Approximates sin(x) in the range [0, PI/2] using a taylor series.
+	// Horner's rule is applied to get more precision.
 	f64 y = 0;
 	
 	f64 x2 = x*x;
@@ -175,6 +182,8 @@ static f64 sin_taylor_horner(f64 x, u32 max_exp) {
 }
 
 static f64 sin_taylor_horner_fmadd(f64 x, u32 max_exp) {
+	// NOTE(ema): Modification of sin_taylor_horner() that uses intrinsics to
+	// generate a fmadd instruction.
 	f64 x2 = x*x;
 	
 	__m128d sse_y  = {};
@@ -197,6 +206,8 @@ static f64 sin_taylor_horner_fmadd(f64 x, u32 max_exp) {
 }
 
 static f64 sin_taylor_horner_fma(f64 x, u32 max_exp) {
+	// NOTE(ema): Modification of sin_taylor_horner() that uses fma() to
+	// generate a fmadd instruction where supported.
 	f64 y = 0;
 	
 	f64 x2 = x*x;
@@ -209,7 +220,8 @@ static f64 sin_taylor_horner_fma(f64 x, u32 max_exp) {
 	return y;
 }
 
-static f64 sin_coefficients_table(f64 x, f64 *values, u32 count) {
+static f64 odd_coefficients_table(f64 x, f64 *values, u32 count) {
+	// NOTE(ema): Approximate any function given a table of coefficients.
 	f64 y = values[count - 1];
 	
 	f64 x2 = x*x;
@@ -223,7 +235,8 @@ static f64 sin_coefficients_table(f64 x, f64 *values, u32 count) {
 }
 
 static f64 sin_ce(f64 x) {
-	// NOTE(ema): Approximate sin(x) using 9 minimax coefficients
+	// NOTE(ema): Approximate sin(x) in the range [0, PI/2] using 9 minimax coefficients.
+	// The coefficients were donated by Demetri Spanos.
 	f64 x2 = x*x;
 	
 	f64 y = 0x1.883c1c5deffbep-49;
@@ -242,7 +255,7 @@ static f64 sin_ce(f64 x) {
 
 static f64 asin_ce(f64 x) {
 	// NOTE(ema): Approximate asin(x) in the range [0, 1/sqrt(2)] using 11 minimax coefficients.
-	// The coefficients are provided by Demetri Spanos.
+	// The coefficients were donated by Demetri Spanos.
 	f64 x2 = x*x;
 	
 	f64 y = 0x1.699a7715830d2p-3;
@@ -262,6 +275,8 @@ static f64 asin_ce(f64 x) {
 }
 
 static f64 asin_ce_ext_i(f64 x) {
+	// NOTE(ema): Extends asin_ce(x) to the range [0, 1]. It uses to comparisons to pre- and
+	// post-condition the values.
 	f64 t = x;
 	if (x > ONE_OVER_SQRT2) {
 		t = sqrt_sse(1 - square_f64(x));
@@ -277,6 +292,8 @@ static f64 asin_ce_ext_i(f64 x) {
 }
 
 static f64 asin_ce_ext_r(f64 x) {
+	// NOTE(ema): Extends asin_ce(x) to the range [0, 1]. It uses "recursion" (kind of) to avoid the
+	// second comparison.
 	f64 y = 0;
 	if (x > ONE_OVER_SQRT2) {
 		x = sqrt_sse(1 - square_f64(x));

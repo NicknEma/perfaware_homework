@@ -19,4 +19,18 @@ static f64 sin_q_half(f64 x);
 static f64 sin_q_quarter(f64 x);
 static f64 cos_q_quarter(f64 x);
 
+static f64 sin_taylor_fast(f64 x, u32 max_exp);
+static f64 sin_taylor_slow(f64 x, u32 max_exp);
+static f64 sin_taylor_casey(f64 x, u32 max_exp);
+static f64 sin_taylor_horner(f64 x, u32 max_exp);
+static f64 sin_taylor_horner_fmadd(f64 x, u32 max_exp);
+static f64 sin_taylor_horner_fma(f64 x, u32 max_exp);
+
+static f64 odd_coefficients_table(f64 x, f64 *values, u32 count);
+
+static f64 sin_ce(f64 x);
+static f64 asin_ce(f64 x);
+static f64 asin_ce_ext_i(f64 x);
+static f64 asin_ce_ext_r(f64 x);
+
 #endif
