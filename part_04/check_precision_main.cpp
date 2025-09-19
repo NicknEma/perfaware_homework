@@ -135,9 +135,7 @@ int main() {
 	}
 #endif
 	
-#define ONE_OVER_SQRT2 0.707106781186547524400844362104849039284835937688474036588339868995366239231053519425193767163820786367506923115456148512462418027925368606322061
-	
-#if 1
+#if 0
 	for (u32 count = 2; count < min(array_count(ArcsineRadiansC_Taylor), array_count(ArcsineRadiansC_MFTWP)); count += 1) {
 		while (try_start_precision_test(&tester, 0, ONE_OVER_SQRT2)) {
 			f64 expected = asin(tester.input_value);
@@ -154,6 +152,15 @@ int main() {
 				compare_outputs(&tester, expected, asin_ce(tester.input_value), "mftwp_11");
 			}
 		}
+	}
+#endif
+	
+#if 1
+	while (try_start_precision_test(&tester, 0, 1)) {
+		f64 expected = asin(tester.input_value);
+		
+		compare_outputs(&tester, expected, asin_ce_ext_i(tester.input_value), "ce_i");
+		compare_outputs(&tester, expected, asin_ce_ext_r(tester.input_value), "ce_r");
 	}
 #endif
 	

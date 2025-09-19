@@ -241,7 +241,8 @@ static f64 sin_ce(f64 x) {
 }
 
 static f64 asin_ce(f64 x) {
-	// NOTE(ema): Approximate asin(x) using 11 minimax coefficients
+	// NOTE(ema): Approximate asin(x) in the range [0, 1/sqrt(2)] using 11 minimax coefficients.
+	// The coefficients are provided by Demetri Spanos.
 	f64 x2 = x*x;
 	
 	f64 y = 0x1.699a7715830d2p-3;
@@ -256,6 +257,34 @@ static f64 asin_ce(f64 x) {
 	y = fma(y, x2, 0x1.5555525723f64p-3);
 	y = fma(y, x2, 0x1.0000000034db9p0);
 	y *= x;
+	
+	return y;
+}
+
+static f64 asin_ce_ext_i(f64 x) {
+	f64 t = x;
+	if (x > ONE_OVER_SQRT2) {
+		t = sqrt_sse(1 - square_f64(x));
+	}
+	
+	f64 y = asin_ce(t);
+	
+	if (x > ONE_OVER_SQRT2) {
+		y = (PI64/2) - y;
+	}
+	
+	return y;
+}
+
+static f64 asin_ce_ext_r(f64 x) {
+	f64 y = 0;
+	if (x > ONE_OVER_SQRT2) {
+		x = sqrt_sse(1 - square_f64(x));
+		y = asin_ce(x);
+		y = (PI64/2) - y;
+	} else {
+		y = asin_ce(x);
+	}
 	
 	return y;
 }
