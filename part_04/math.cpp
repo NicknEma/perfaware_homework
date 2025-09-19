@@ -221,3 +221,21 @@ static f64 sin_coefficients_table(f64 x, f64 *values, u32 count) {
 	
 	return y;
 }
+
+static f64 sin_ce(f64 x) {
+	// NOTE(ema): Approximate sin(x) using 9 minimax coefficients
+	f64 x2 = x*x;
+	
+	f64 y = 0x1.883c1c5deffbep-49;
+	y = fma(y, x2, -0x1.ae43dc9bf8ba7p-41);
+	y = fma(y, x2, 0x1.6123ce513b09fp-33);
+	y = fma(y, x2, -0x1.ae6454d960ac4p-26);
+	y = fma(y, x2, 0x1.71de3a52aab96p-19);
+	y = fma(y, x2, -0x1.a01a01a014eb6p-13);
+	y = fma(y, x2, 0x1.11111111110c9p-7);
+	y = fma(y, x2, -0x1.5555555555555p-3);
+	y = fma(y, x2, 0x1p0);
+	y *= x;
+	
+	return y;
+}
